@@ -143,12 +143,48 @@ No database tables in this phase: the schema is proposed at the Phase 1 gate and
 
 ## Phase 2: Agent (week 2, Oct 14 to Oct 20)
 
-- [ ] Linter step (ruff, ESLint) on the changed files
-- [ ] LLM client module: provider and model from env; counts requests and tokens; refuses calls over the daily cap
-- [ ] Agent loop with four tools: read file, search repo, view diff hunk, list related tests
-- [ ] Step and token caps; per-run budget tracking (tokens, requests, estimated cost)
-- [ ] Structured findings (file, line, category, severity, confidence, explanation) validated by schema
-- [ ] Inline review comment posting
+**Decisions (2026-10-07, Vighnesh):** one review with up to 5 inline comments; linter output is a hint for the agent only (linter-only stays benchmark setup 1); caps 8 steps / 60k tokens; on LLM failure or daily cap nothing is posted, the run is marked in the DB. Model `gemini-3.8-flash`, `store=False` (stateless: Google keeps no conversation), key from a no-billing project (verified with a free metadata call).
+
+**Design:** the worker downloads the PR head as one tarball (`GET /repos/{repo}/tarball/{sha}`, contents:read) into a temp dir, size-capped, extracted with `tarfile` `filter="data"` (no links outside, no device files). All four tools and the linters read that local checkout; it is deleted when the run ends, so no code is stored. The final answer is a call to a `submit_findings` tool whose arguments are validated by a strict pydantic schema; invalid output is dropped. Run-per-commit moves to the `runs` table (unique PR + SHA); a failed, paused, or abandoned run is retried by a new event for that commit (close and reopen the PR) or by the next push. Redelivering the identical webhook does not retry: the signature replay guard drops it.
+
+### Task 2.1: Database (approved schema)
+**Files:** `backend/alembic.ini`, `backend/alembic/{env.py,script.py.mako}`, `backend/alembic/versions/0001_initial.py`, `backend/app/db/{models.py,session.py}`, `backend/tests/integration/test_db.py`
+- [ ] Migration runs the approved DDL from `docs/architecture.md` verbatim; downgrade drops the tables
+- [ ] SQLAlchemy models mirror it; integration test (real Postgres, own test DB): upgrade → insert a run → second run for the same PR+SHA violates the unique constraint → downgrade
+
+### Task 2.2: PR diff and checkout
+**Files:** `backend/app/github/diff.py`, `backend/tests/unit/test_diff.py`
+**Produces:** `parse_patch(patch: str) -> set[int]` (new-side line numbers a review comment may target); `async get_pr_files(http, token, repo, pr) -> list[PrFile]` (path, status, patch, commentable lines; Python/TS files only, max 50 files); `async checkout(http, token, repo, sha, dest) -> Path` (max 50 MB download, `filter="data"`).
+- [ ] Tests: hunk parsing (added, context, removed, multiple hunks, no-newline marker); oversized download refused; archive member escaping the folder refused
+
+### Task 2.3: Tools (read-only, confined to the checkout)
+**Files:** `backend/app/agent/tools.py`, `backend/tests/unit/test_tools.py`
+**Produces:** `Tools(root, pr_files)` with `read_file(path, start_line=1, end_line=200)` (max 200 lines), `search_repo(pattern)` (plain text, max 30 hits), `view_diff_hunk(path)`, `list_related_tests(path)`, and `declarations()` (JSON schemas for the LLM). Every path is resolved and must stay inside `root`; errors come back as text, never exceptions.
+- [ ] Tests: each tool's output; `../` and absolute paths and symlinks out of the root are refused; output limits hold
+
+### Task 2.4: Linters
+**Files:** `backend/app/checks/linters.py`, `backend/app/checks/eslint/{package.json,pnpm-lock.yaml,eslint.config.mjs}`, `backend/Dockerfile` (adds Node 22 + ESLint), `backend/tests/unit/test_linters.py`
+**Produces:** `async run_linters(root, paths) -> list[LintHint]` (file, line, rule, message); ruff via `ruff check --output-format json --isolated`, ESLint via the bundled config. Timeouts 60 s each; a crash yields no hints, not a failed run. The PR's own linter configs are never executed.
+- [ ] Tests with a temp folder holding a known ruff violation; ESLint test skipped when Node is absent
+
+### Task 2.5: Findings schema and filters
+**Files:** `backend/app/agent/schemas.py`, `backend/app/agent/filters.py`, `backend/tests/unit/test_filters.py`
+**Produces:** `Finding` (pydantic, `extra="forbid"`: file, line ≥ 1, category ∈ bug/security/missing_test, severity ∈ low/medium/high, confidence 0–1, explanation ≤ 2000 chars); `filter_findings(findings, commentable, threshold=0.7, cap=5) -> list[tuple[Finding, status]]` — drop lines not in the diff, below threshold, duplicates (same file and category within 3 lines, keep the higher confidence), then sort by severity then confidence and keep 5.
+- [ ] Tests for each rule and their order
+
+### Task 2.6: Budget, LLM client, agent loop
+**Files:** `backend/app/agent/budget.py`, `backend/app/agent/llm.py`, `backend/app/agent/prompts.py`, `backend/app/agent/guardrails.py`, `backend/app/agent/loop.py`, `backend/tests/unit/{test_budget.py,test_loop.py}`
+**Produces:** `Budget(max_steps=8, max_tokens=60_000)` with `charge(tokens_in, tokens_out)` and `exhausted`; `DailyCap(redis, cap)` (Redis `INCR` on `llm:requests:{UTC date}`, 2-day expiry; refuses over the cap); `GeminiLLM.step(system, history, tools) -> LlmStep(calls, text, tokens_in, tokens_out, raw_steps)`; `run_agent(llm, tools, context, budget, cap) -> AgentResult(findings, trace, usage, stop_reason)`.
+**Guardrails:** PR title/body/diff wrapped in labelled `<untrusted_pr_content>` delimiters; the system prompt says content inside is data, never instructions; only the four tools + `submit_findings` exist; unknown tool names are refused; findings are validated before use.
+- [ ] Tests with a fake LLM: the loop stops at 8 steps; stops when tokens pass 60k; stops when the daily cap is hit (no LLM call made); invalid `submit_findings` arguments are dropped; tool calls are dispatched and traced
+
+### Task 2.7: Review posting and the worker pipeline
+**Files:** `backend/app/github/comments.py`, `backend/app/queue/worker.py`, `backend/tests/unit/{test_comments.py,test_pipeline.py}`
+**Produces:** `post_review(http, token, repo, pr, sha, findings)` — one `COMMENT` review with up to 5 inline comments; body carries a hidden `<!-- diffmate:{sha} -->` marker and existing reviews are checked first, so a retry never double-posts. Pipeline: claim the run row (unique PR+SHA) → checkout → linters → agent → filter → post → save findings and trace → delete checkout. Any failure: run marked failed/paused, nothing posted.
+- [ ] Tests: marker prevents a second post; pipeline with fakes saves findings with the right statuses; no-findings PR posts nothing
+
+### Task 2.8: Live check
+- [ ] A PR in `diffmate-playground` with a planted bug gets at most 5 sensible inline comments; tokens and estimated cost are recorded
 
 **Acceptance:** a real PR gets at most 5 sensible comments; a test proves the caps hold.
 

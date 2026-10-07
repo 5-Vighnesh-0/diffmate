@@ -6,6 +6,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: no
 
 ### Security
 
+- Phase 2 hardening: linter argument injection closed (`--`), tarball size/entry caps, bounded tools, untrusted-content marking for file names and tool output, bot-only review markers, httpx URLs not logged.
 - Webhook replay protection keys on the signature (the delivery header is unsigned); non-ASCII signature headers rejected cleanly; repo name and SHA validated before use in API paths.
 - Each container receives only the secrets it uses; frontend container runs as non-root.
 - Tests can no longer read the real `.env`.
@@ -16,6 +17,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: no
 
 ### Added
 
+- Phase 2: AI review agent (Gemini free tier) with four read-only tools, ruff/ESLint hints, step/token/daily/per-minute caps, findings filter, one inline review per commit, run history in Postgres (migrations 0001-0002).
 - Phase 1 backend: `/health`, `POST /webhooks/github` (HMAC check, replay protection, 1 MiB limit), arq queue with one job per commit, worker posting a test comment with retries, GitHub App JWT and repo-scoped installation tokens, JSON logs. 29 unit/security tests.
 - Docker compose stack, backend and frontend Dockerfiles, CI (ruff, pytest, pip-audit, pnpm build and audit, gitleaks), Makefile, `.env.example`, minimal frontend.
 - Runbooks: GitHub App setup with cloudflared; Docker and uv install.

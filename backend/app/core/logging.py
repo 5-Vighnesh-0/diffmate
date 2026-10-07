@@ -21,3 +21,5 @@ def setup_logging() -> None:
     handler = logging.StreamHandler()
     handler.setFormatter(JsonFormatter())
     logging.basicConfig(level=logging.INFO, handlers=[handler], force=True)
+    # httpx logs every request URL at INFO; GitHub's codeload redirect URLs can carry a token.
+    logging.getLogger("httpx").setLevel(logging.WARNING)

@@ -13,9 +13,24 @@ jobs:
     defaults:
       run:
         working-directory: backend
+    # Throwaway services for the integration tests (test-only credentials).
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: test
+        ports: ["55432:5432"]
+        options: --health-cmd pg_isready --health-interval 5s --health-retries 10
+      redis:
+        image: redis:7
+        ports: ["6379:6379"]
     steps:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v10
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: backend/app/checks/eslint/package.json
+      - run: pnpm install --frozen-lockfile --dir app/checks/eslint
       - run: uv sync --frozen
       - run: uv run ruff check .
       - run: uv run ruff format --check .

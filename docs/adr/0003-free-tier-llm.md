@@ -44,3 +44,19 @@ The project must never spend money. A Claude Pro subscription does not include A
 1. [ ] User creates a Gemini API key in AI Studio in a project with no billing, and sets `GEMINI_API_KEY` in their own `.env`
 2. [ ] User reads free-tier limits in AI Studio → Rate limits; `LLM_DAILY_REQUEST_CAP` is set below the daily limit
 3. [ ] Phase 2: LLM client enforces the cap; a unit test proves calls stop at the cap
+
+## Update 2026-10-07: measured free-tier limits
+
+From the AI Studio rate-limit page (user's account) and live calls:
+
+| Model | RPM | TPM | RPD | Measured latency (tiny call) |
+| --- | --- | --- | --- | --- |
+| gemini-3.8-flash (chosen) | 5 | 250K | **20** | ~55 s default thinking, ~4 s with `thinking_level: low` |
+| gemini-3.5-flash-lite | 15 | 250K | 500 | ~0.7 s |
+
+Consequences, decided with Vighnesh:
+- Stay on `gemini-3.8-flash`. `LLM_DAILY_REQUEST_CAP=16` (80% of 20), `LLM_REQUESTS_PER_MINUTE=4` (calls are spaced so the 5 RPM limit is never hit).
+- `thinking_level: low` by default (measured 13x faster).
+- A Google 429 is not retried by the SDK; the run stops at once and is marked `paused_daily_cap`. Only 500/502/503/504 get one SDK retry.
+- At ~5 requests per review this is about 3 reviews per day. The Phase 4 benchmark (~300 requests) does not fit one week at this rate: options are put to the Phase 2 gate.
+

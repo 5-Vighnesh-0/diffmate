@@ -171,3 +171,55 @@
 - Database plan approved as proposed (9 tables, no code stored, 90-day cleanup).
 - First local git commit approved (no remote, nothing pushed).
 - Gemini key: walk-through at the start of Phase 2.
+
+### Day 1, part 8: Phase 2 build and first real review (2026-10-07 UTC)
+
+**Done**
+- Phase 2 questions answered; Gemini key created by user (no-billing project) and verified with a free metadata call; daily cap set to 100.
+- Built Phase 2 test-first (see `reports/phases/phase-2-agent.md`): migration, checkout, tools, linters, schema/filters, agent loop with caps, guardrails, review posting, worker pipeline. 100 tests pass.
+- Debugged a hung live review: Gemini default thinking ~55 s/call → `thinking_level: low` ~4 s; added LLM timeout, job timeout, cancel handling, shorter arq result TTL.
+- Live: PR #2 got one review with 3 correct inline comments (all planted bugs found). 5 requests, est. $0.0053, paid $0.
+
+**Files**
+- added: `backend/alembic/**`, `backend/alembic.ini`, `backend/app/db/{models.py,session.py}`, `backend/app/github/diff.py`, `backend/app/agent/{tools.py,llm.py,loop.py,guardrails.py,prompts.py,schemas.py,filters.py,budget.py}`, `backend/app/checks/{linters.py,eslint/*}`, `backend/.dockerignore`, tests `test_{diff,tools,filters,loop,llm,linters,comments}.py`, `tests/integration/{conftest.py,test_db.py,test_pipeline.py}`, `reports/phases/phase-2-agent.md`
+- changed: `backend/app/queue/worker.py`, `backend/app/github/comments.py`, `backend/app/core/config.py`, `backend/Dockerfile`, `docker-compose.yml`, `.github/workflows/ci.yml`, `docs/PLAN.md`, `backend/pyproject.toml`
+- data: dev DB run 1 (stuck from the pre-fix code) set to failed
+
+**Decisions**
+- Thinking level `low` by default (decided by: Claude, from measurements; configurable).
+- `dropped_not_in_diff` findings not stored until the schema question is answered (decided by: Claude, schema changes need approval).
+
+**Next**
+- Independent review, fixes, fresh verification, Phase 2 gate.
+
+### Day 1, part 9: review fixes and free-tier limits (2026-10-07 UTC)
+
+**Done**
+- Phase 2 review: 17 findings; 15 fixed test-first (incl. a critical linter argument-injection path to code execution), 2 accepted/gated.
+- Docker restarted (user re-login): all containers stopped. Added `restart: unless-stopped`; tunnel restarted, App webhook URL updated by user.
+- Live retries failed safely: Google returned 503/429. Root cause: `gemini-3.8-flash` free tier is 20 requests/day and 5/minute (AI Studio screenshot); today's quota is used up.
+- User chose to stay on `gemini-3.8-flash`; cap set to 16/day; added per-minute spacing (4/min), no SDK retries on 429, 429 → paused run.
+- Fresh verification: lint clean, 122 tests pass, audits clean, gitleaks clean.
+
+**Files**
+- changed: `backend/app/agent/{llm.py,loop.py,budget.py,tools.py,guardrails.py,prompts.py}`, `backend/app/checks/linters.py`, `backend/app/github/{diff.py,comments.py}`, `backend/app/queue/worker.py`, `backend/app/core/{config.py,logging.py}`, `docker-compose.yml`, `docs/PLAN.md`, `docs/adr/0003-free-tier-llm.md`, tests
+- added: `backend/tests/unit/test_llm.py`
+
+**Decisions** (decided by: Vighnesh)
+- Stay on `gemini-3.8-flash` (20 RPD); daily cap 16.
+
+**Blockers**
+- Live re-check of the hardened code waits for the quota reset (~19 h).
+
+**Next**
+- Phase 2 gate: approval, benchmark-timeline decision, `dropped_not_in_diff` schema question, commit.
+
+### Day 1, part 10: Phase 2 gate
+
+**Decisions** (decided by: Vighnesh)
+- Phase 2 approved (live re-check after quota reset).
+- Benchmark on Flash Lite, 3.8 Flash on the holdout.
+- Migration 0002 (`dropped_not_in_diff`) approved and applied; DeepSeek not adopted for now (cost / lower free limits).
+
+**Tests / checks**
+- 123 passed; dev DB at schema version 0002.
