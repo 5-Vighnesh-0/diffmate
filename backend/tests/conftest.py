@@ -30,7 +30,8 @@ async def client(app):
 
 
 class FakeRedis:
-    """In-memory stand-in for the Redis calls the API makes (TTL recorded, not enforced)."""
+    """In-memory stand-in for the Redis calls the API makes (TTL recorded, not enforced).
+    Like real Redis (arq pool, no decode_responses), reads return bytes."""
 
     def __init__(self):
         self.data: dict[str, str] = {}
@@ -45,10 +46,12 @@ class FakeRedis:
         return True
 
     async def get(self, key):
-        return self.data.get(key)
+        value = self.data.get(key)
+        return None if value is None else str(value).encode()
 
     async def getdel(self, key):
-        return self.data.pop(key, None)
+        value = self.data.pop(key, None)
+        return None if value is None else str(value).encode()
 
     async def delete(self, key):
         self.data.pop(key, None)

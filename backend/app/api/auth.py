@@ -80,8 +80,18 @@ async def _github_identity(http, settings: Settings, code: str, verifier: str):
             "code_verifier": verifier,
         },
     )
-    token = r.json().get("access_token") if r.status_code == 200 else None
+    try:
+        answer = r.json()
+    except ValueError:
+        answer = {}
+    token = answer.get("access_token") if r.status_code == 200 else None
     if not token:
+        # GitHub's error code is not secret (e.g. "incorrect_client_credentials"); log it.
+        log.warning(
+            "login failed: token exchange HTTP %s, error=%s",
+            r.status_code,
+            str(answer.get("error", "none"))[:60],
+        )
         raise HTTPException(400, "GitHub login failed")
     auth = {"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"}
 
@@ -119,7 +129,9 @@ async def callback(
     if not code or not state or not hmac.compare_digest(browser_state, state):
         log.warning("login rejected: missing code or state not from this browser")
         raise HTTPException(400, "Login expired or was started elsewhere, please try again")
-    verifier = await redis.getdel(f"oauth:{state[:100]}")  # one-time: replays find nothing
+    stored = await redis.getdel(f"oauth:{state[:100]}")  # one-time: replays find nothing
+    # Real Redis returns bytes; sending b"..." would break PKCE (GitHub: invalid_grant).
+    verifier = stored.decode() if isinstance(stored, bytes) else stored
     if not verifier:
         log.warning("login rejected: unknown or reused state")
         raise HTTPException(400, "Login expired, please try again")

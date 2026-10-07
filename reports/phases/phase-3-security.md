@@ -31,7 +31,7 @@ live API          → security headers present; /api/me without login → 401 {"
 - [x] Security test suite green
 - [x] Live injection suite passes
 - [ ] CI audits green on GitHub (no remote yet; the same commands pass locally)
-- [ ] Live login check (needs the App's OAuth Client ID/secret in `.env`)
+- [x] Live login (2026-10-07 13:53 UTC): `login 5-Vighnesh-0 (1 installations, 1 repos)`; `/api/me` shows user, installation 168702940, 0/16 requests; reused callback links rejected ("unknown or reused state")
 
 ## Independent review (subagent) and actions
 
@@ -53,6 +53,9 @@ live API          → security headers present; /api/me without login → 401 {"
 | 14 | Threat-model rows naming missing tests | Fixed (Retry-After, TTL, login CSRF tests) |
 
 ## Problems and fixes
+
+- **Live login failed with GitHub `invalid_grant`.** Root cause: real Redis returns bytes, so the PKCE verifier was sent as the text `b'…'`; the test fake returned str and hid it. Diagnosed by logging GitHub's (non-secret) error code, ruling out the PKCE math with the RFC 7636 test vector, then probing real Redis. Fix: decode the verifier; the test fake now returns bytes like real Redis (156 tests pass); RFC vector kept as a test.
+- uvicorn's access log printed the one-time OAuth code in the callback URL: access log turned off (`--no-access-log`); the app's JSON logs record login events without codes.
 
 - Pacing bug: per-clock-minute counting allowed bursts → Google 429 on Flash Lite. Fixed with even spacing; worker runs one review at a time.
 - The SDK's own `RateLimitError` slipped past the 429 mapping → mapped by status code on any error.

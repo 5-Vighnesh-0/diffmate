@@ -22,4 +22,5 @@ RUN useradd --uid 1000 --create-home diffmate
 USER diffmate
 EXPOSE 8000
 # Apply approved migrations, then serve.
-CMD ["sh", "-c", "alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+# --no-access-log: access lines would include query strings such as the one-time OAuth code.
+CMD ["sh", "-c", "alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --no-access-log"]
