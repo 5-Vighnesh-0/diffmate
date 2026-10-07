@@ -30,6 +30,13 @@ class Settings(BaseSettings):
     confidence_threshold: float = 0.7
     comment_cap: int = 5
 
+    # Dashboard login (GitHub App user OAuth). Secret only in the API container.
+    github_oauth_client_id: str = ""
+    github_oauth_client_secret: SecretStr = SecretStr("")
+    public_api_url: str = "http://localhost:8000"
+    frontend_origin: str = "http://localhost:5173"
+    client_ip_header: str = "cf-connecting-ip"  # set by Cloudflare (tunnel); "" = direct peer
+
     webhook_max_body_bytes: int = 1_048_576  # 1 MiB; PR event payloads are far smaller
     delivery_ttl_seconds: int = 7 * 24 * 3600  # how long a delivery ID counts as seen
 

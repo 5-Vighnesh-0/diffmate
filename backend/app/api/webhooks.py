@@ -5,6 +5,7 @@ import re
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 
+from app.api.deps import get_redis
 from app.core.config import Settings, get_settings
 from app.core.security import verify_signature
 from app.queue.jobs import enqueue_review
@@ -15,10 +16,6 @@ log = logging.getLogger(__name__)
 REVIEW_ACTIONS = {"opened", "synchronize", "reopened", "ready_for_review"}
 REPO_NAME = re.compile(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+")
 COMMIT_SHA = re.compile(r"[0-9a-f]{40}")
-
-
-def get_redis(request: Request):
-    return request.app.state.redis
 
 
 def error(status: int, code: str, message: str) -> JSONResponse:

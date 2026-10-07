@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from google import genai
-from google.genai import errors, types
+from google.genai import types
 
 
 class LlmError(RuntimeError):
@@ -65,11 +65,12 @@ class GeminiLLM:
             interaction = await asyncio.wait_for(request, self.timeout_seconds)
         except (TimeoutError, asyncio.CancelledError):
             raise
-        except errors.APIError as e:
-            if e.code == 429:
-                raise LlmRateLimited("429") from e
-            raise LlmError(f"APIError {e.code}") from e
         except Exception as e:
+            # The SDK has several error classes; all carry the HTTP status as `status_code`
+            # (compat RateLimitError, GenAiError) or `code` (errors.APIError).
+            status = getattr(e, "status_code", None) or getattr(e, "code", None)
+            if status == 429:
+                raise LlmRateLimited("429") from e
             raise LlmError(type(e).__name__) from e
         steps = [
             s for s in interaction.steps or [] if s.type not in ("user_input", "function_result")

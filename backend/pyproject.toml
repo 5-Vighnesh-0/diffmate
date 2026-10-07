@@ -27,7 +27,7 @@ package = false
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 testpaths = ["tests"]
-pythonpath = ["."]
+pythonpath = [".", ".."]  # ".." makes the repo-level benchmark/ package importable
 
 [tool.ruff]
 target-version = "py312"
