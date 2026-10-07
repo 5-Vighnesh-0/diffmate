@@ -1,5 +1,3 @@
-import json
-
 import httpx
 import pytest
 from arq import Retry
@@ -22,42 +20,25 @@ async def test_enqueue_review_reports_duplicate_when_arq_refuses_the_job():
     assert await enqueue_review(Pool(), repo="o/r", pr=7, sha=SHA, installation_id=1) is False
 
 
-def github(comment_status=201, comment_error=None):
-    """Fake GitHub: token exchange always works; the comment call is configurable."""
-    comments = []
+def github(comment_status=200, comment_error=None):
+    """Fake GitHub: the token exchange works; every later call (starting with the PR
+    details request) fails with the given status or error."""
 
     def handler(request: httpx.Request) -> httpx.Response:
         if request.url.path.endswith("/access_tokens"):
             return httpx.Response(201, json={"token": "inst-token"})
         if comment_error:
             raise comment_error
-        comments.append(
-            (request.url.path, request.headers["authorization"], json.loads(request.content))
-        )
         return httpx.Response(comment_status, json={})
 
     http = httpx.AsyncClient(
         transport=httpx.MockTransport(handler), base_url="https://api.github.com"
     )
-    return http, comments
+    return http, []
 
 
 def ctx(http, job_try=1):
     return {"http": http, "app_jwt": lambda: "app-jwt", "job_try": job_try}
-
-
-async def test_review_pr_posts_exactly_one_comment_with_installation_token():
-    http, comments = github()
-
-    await review_pr(ctx(http), "o/r", 7, SHA, 42)
-
-    assert comments == [
-        (
-            "/repos/o/r/issues/7/comments",
-            "Bearer inst-token",
-            {"body": "DiffMate received commit `aaaaaaa`. Automated review is not enabled yet."},
-        )
-    ]
 
 
 @pytest.mark.parametrize("status", [429, 500, 502])

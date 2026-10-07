@@ -16,3 +16,12 @@ def test_log_lines_are_single_line_json_with_level_logger_and_message():
         "logger": "app.x",
         "message": "queued o/r#7",
     }
+
+
+def test_http_client_request_urls_are_not_logged():
+    from app.core.logging import setup_logging
+
+    setup_logging()
+
+    # httpx logs full URLs at INFO; codeload redirect URLs can carry a token.
+    assert logging.getLogger("httpx").getEffectiveLevel() >= logging.WARNING

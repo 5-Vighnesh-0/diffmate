@@ -16,6 +16,20 @@ class Settings(BaseSettings):
     github_app_id: int | None = None
     github_app_private_key_path: str | None = None
 
+    # LLM (ADR 0003). The key comes from a project with no billing account; cap 0 = no LLM calls.
+    llm_provider: str = "gemini"
+    llm_model: str = "gemini-3.8-flash"
+    gemini_api_key: SecretStr = SecretStr("")
+    llm_daily_request_cap: int = 0
+    llm_requests_per_minute: int = 4  # Gemini 3.8 Flash free tier allows 5 RPM
+    llm_thinking_level: str = "low"  # minimal | low | high
+    llm_timeout_seconds: float = 90
+
+    agent_max_steps: int = 8
+    agent_max_tokens: int = 60_000
+    confidence_threshold: float = 0.7
+    comment_cap: int = 5
+
     webhook_max_body_bytes: int = 1_048_576  # 1 MiB; PR event payloads are far smaller
     delivery_ttl_seconds: int = 7 * 24 * 3600  # how long a delivery ID counts as seen
 

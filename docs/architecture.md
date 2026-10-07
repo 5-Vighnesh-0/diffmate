@@ -123,7 +123,8 @@ create table findings (
   confidence numeric(3, 2) not null check (confidence between 0 and 1),
   explanation text not null check (length(explanation) <= 2000),
   status text not null
-    check (status in ('posted', 'dropped_low_confidence', 'dropped_duplicate', 'dropped_over_cap')),
+    check (status in ('posted', 'dropped_low_confidence', 'dropped_duplicate', 'dropped_over_cap',
+                      'dropped_not_in_diff')),  -- 'dropped_not_in_diff' added by migration 0002
   github_comment_id bigint
 );
 create index findings_run_id_idx on findings (run_id);
