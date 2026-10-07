@@ -1,0 +1,47 @@
+[project]
+name = "diffmate-backend"
+version = "0.1.0"
+description = "DiffMate API and worker"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "pydantic-settings",
+    "sqlalchemy[asyncio]",
+    "asyncpg",
+    "arq",
+    "httpx",
+    "pyjwt[crypto]",
+    "ruff",
+]
+
+[dependency-groups]
+dev = ["pytest", "pytest-asyncio", "pip-audit"]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+# S = flake8-bandit security rules (required by the brief)
+select = ["E", "F", "I", "B", "S", "UP"]
+
+[tool.ruff.lint.per-file-ignores]
+# asserts and fake secrets are fine in tests
+"tests/**" = ["S101", "S105", "S106"]
+
+[tool.pyright]
+venvPath = "."
+venv = ".venv"
+
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["fastapi.Depends"]

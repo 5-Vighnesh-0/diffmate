@@ -1,0 +1,5 @@
+title = "DiffMate"
+
+# Use gitleaks' built-in rules. Tests generate keys at runtime, so no allowlist is needed.
+[extend]
+useDefault = true
