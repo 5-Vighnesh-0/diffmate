@@ -58,6 +58,7 @@ services:
       LLM_MODEL: ${LLM_MODEL:-gemini-3.8-flash}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       LLM_DAILY_REQUEST_CAP: ${LLM_DAILY_REQUEST_CAP:-0}
+      LLM_REQUESTS_PER_MINUTE: ${LLM_REQUESTS_PER_MINUTE:-4}
     volumes:
       - ${GITHUB_APP_PRIVATE_KEY_PATH:?set GITHUB_APP_PRIVATE_KEY_PATH in .env}:/run/secrets/github-app.pem:ro
     depends_on:

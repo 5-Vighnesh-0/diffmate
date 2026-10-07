@@ -255,3 +255,10 @@
 - First logins failed with GitHub `invalid_grant`: the PKCE verifier went out as `b'…'` because real Redis returns bytes. Fixed and covered by a realistic test fake; access log (which printed OAuth codes) disabled.
 - Login works: `5-Vighnesh-0`, 1 installation, 1 repo; replayed callback links rejected.
 - The cloudflared quick tunnel dropped and would not reconnect; needs a restart for the Phase 2 re-review.
+
+### Day 2, later: Phase 2 live re-check
+
+- Restarted the tunnel (new URL), user updated the App webhook.
+- Gemini 3.8 Flash did not answer (90 s and 150 s timeouts on trivial calls); run failed safely.
+- Decision (Vighnesh): worker switches to `gemini-3.5-flash-lite` (cap 400/day, 12/min); 3.8 Flash kept for the holdout comparison. Added Flash Lite list price; per-minute setting wired into compose.
+- Close/reopen PR #2 reclaimed the failed run: done in 23 s, 2 of 3 planted bugs found (missed the empty-list division), 4 requests, est. $0.0036.

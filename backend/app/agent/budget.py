@@ -6,7 +6,10 @@ from zoneinfo import ZoneInfo
 
 # Public paid-tier list prices, USD per million tokens (checked 2026-10-06). We pay $0 on the
 # free tier; these only produce the clearly labelled *estimated* cost per PR.
-LIST_PRICE_PER_MILLION = {"gemini-3.8-flash": (0.75, 3.75)}
+LIST_PRICE_PER_MILLION = {
+    "gemini-3.8-flash": (0.75, 3.75),
+    "gemini-3.5-flash-lite": (0.30, 2.50),
+}
 
 
 def estimated_cost_usd(model: str, tokens_in: int, tokens_out: int) -> float:
