@@ -1,0 +1,27 @@
+{
+  "name": "50-fastapi-threadpool-exit-helper",
+  "kind": "seeded",
+  "split": "dev",
+  "source": {
+    "repo": "fastapi/fastapi",
+    "commit": "94918c1d40afb27065c64d523219ed2ad9822f76",
+    "license": "MIT"
+  },
+  "title": "Deduplicate __exit__ calls in contextmanager_in_threadpool",
+  "body": "Both the error and success paths of contextmanager_in_threadpool called cm.__exit__ in a worker thread with the same limiter. This extracts that into a small _exit_in_threadpool helper so the two branches share one code path.",
+  "before": {
+    "fastapi/concurrency.py": "from collections.abc import AsyncGenerator\nfrom contextlib import AbstractContextManager\nfrom contextlib import asynccontextmanager as asynccontextmanager\nfrom typing import TypeVar\n\nimport anyio.to_thread\nfrom anyio import CapacityLimiter\nfrom starlette.concurrency import iterate_in_threadpool as iterate_in_threadpool  # noqa\nfrom starlette.concurrency import run_in_threadpool as run_in_threadpool  # noqa\nfrom starlette.concurrency import (  # noqa\n    run_until_first_complete as run_until_first_complete,\n)\n\n_T = TypeVar(\"_T\")\n\n\n@asynccontextmanager\nasync def contextmanager_in_threadpool(\n    cm: AbstractContextManager[_T],\n) -> AsyncGenerator[_T, None]:\n    # blocking __exit__ from running waiting on a free thread\n    # can create race conditions/deadlocks if the context manager itself\n    # has its own internal pool (e.g. a database connection pool)\n    # to avoid this we let __exit__ run without a capacity limit\n    # since we're creating a new limiter for each call, any non-zero limit\n    # works (1 is arbitrary)\n    exit_limiter = CapacityLimiter(1)\n    try:\n        yield await run_in_threadpool(cm.__enter__)\n    except Exception as e:\n        ok = bool(\n            await anyio.to_thread.run_sync(\n                cm.__exit__, type(e), e, e.__traceback__, limiter=exit_limiter\n            )\n        )\n        if not ok:\n            raise e\n    else:\n        await anyio.to_thread.run_sync(\n            cm.__exit__, None, None, None, limiter=exit_limiter\n        )\n"
+  },
+  "after": {
+    "fastapi/concurrency.py": "from collections.abc import AsyncGenerator\nfrom contextlib import AbstractContextManager\nfrom contextlib import asynccontextmanager as asynccontextmanager\nfrom typing import TypeVar\n\nimport anyio.to_thread\nfrom anyio import CapacityLimiter\nfrom starlette.concurrency import iterate_in_threadpool as iterate_in_threadpool  # noqa\nfrom starlette.concurrency import run_in_threadpool as run_in_threadpool  # noqa\nfrom starlette.concurrency import (  # noqa\n    run_until_first_complete as run_until_first_complete,\n)\n\n_T = TypeVar(\"_T\")\n\n\nasync def _exit_in_threadpool(\n    cm: AbstractContextManager[_T],\n    exc: BaseException | None,\n    limiter: CapacityLimiter,\n) -> bool:\n    return bool(\n        await anyio.to_thread.run_sync(\n            cm.__exit__, type(exc), exc, exc.__traceback__, limiter=limiter\n        )\n    )\n\n\n@asynccontextmanager\nasync def contextmanager_in_threadpool(\n    cm: AbstractContextManager[_T],\n) -> AsyncGenerator[_T, None]:\n    # blocking __exit__ from running waiting on a free thread\n    # can create race conditions/deadlocks if the context manager itself\n    # has its own internal pool (e.g. a database connection pool)\n    # to avoid this we let __exit__ run without a capacity limit\n    # since we're creating a new limiter for each call, any non-zero limit\n    # works (1 is arbitrary)\n    exit_limiter = CapacityLimiter(1)\n    try:\n        yield await run_in_threadpool(cm.__enter__)\n    except Exception as e:\n        if not await _exit_in_threadpool(cm, e, exit_limiter):\n            raise e\n    else:\n        await _exit_in_threadpool(cm, None, exit_limiter)\n"
+  },
+  "bugs": [
+    {
+      "file": "fastapi/concurrency.py",
+      "line_start": 24,
+      "line_end": 24,
+      "category": "bug",
+      "why": "On the success path exc is None, so exc.__traceback__ raises AttributeError (and type(None) would pass NoneType instead of None), breaking every sync context-manager dependency exit."
+    }
+  ]
+}

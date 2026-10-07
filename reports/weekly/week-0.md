@@ -262,3 +262,32 @@
 - Gemini 3.8 Flash did not answer (90 s and 150 s timeouts on trivial calls); run failed safely.
 - Decision (Vighnesh): worker switches to `gemini-3.5-flash-lite` (cap 400/day, 12/min); 3.8 Flash kept for the holdout comparison. Added Flash Lite list price; per-minute setting wired into compose.
 - Close/reopen PR #2 reclaimed the failed run: done in 23 s, 2 of 3 planted bugs found (missed the empty-list division), 4 requests, est. $0.0036.
+
+### Day 2, later: Phase 4 start (benchmark)
+
+**Done**
+- Phase 4 opening questions answered and design approved; design written into `docs/benchmark.md`, tasks into `docs/PLAN.md`.
+- Corpus: 60 offline cases built by 5 subagents in parallel (2 of them hit the Claude session limit after writing their files and before reporting; their cases were reviewed the same way as the others). Mix: 35 seeded, 15 real (fix commits undone), 10 clean; Python and TypeScript from 10 permissive repos.
+- Claude reviewed every case: all labels on changed lines and real bugs; all clean cases correct; all 15 real cases byte-identical to git (`before` = fix commit, `after` = its parent); no hints in titles, bodies, or comments; gitleaks on `benchmark/`: no leaks.
+- Holdout: 12 cases (7 seeded, 3 real, 2 clean) picked with seed 4. Case set fingerprint `2fe57354e31e` (changes if any case changes).
+- Runner `bench` mode (one agent run scored as linter / agent / agent+filter; resumable), scorer, `make bench`, `make bench-holdout`, `make bench-score`.
+- Found and fixed: difflib's default "autojunk" heuristic misaligned 3 long files (case 03 showed an untouched class as deleted and re-added); diffs now built without it. Regression test pinned to case 03.
+- Five random cases written to `benchmark/spot-check.md` for Vighnesh to check before freeze.
+
+**Test output**
+```
+ruff → All checks passed! · pytest → 181 passed
+48 dev 12 holdout · case set 2fe57354e31e
+```
+
+**Files**
+- added: `benchmark/corpus.py`, `benchmark/score.py`, `benchmark/cases/*.json` (60), `benchmark/cases/THIRD_PARTY.md`, `benchmark/spot-check.md`, `backend/tests/unit/test_benchmark.py`
+- changed: `benchmark/runner.py` (bench mode; `added_patch` replaced by the shared diff builder), `backend/tests/unit/test_runner.py` (its `added_patch` test removed), `Makefile`, `README.md`, `docs/benchmark.md`, `docs/PLAN.md`
+
+**Decisions**
+- 60 offline cases (35 seeded / 15 real / 10 clean), 12 holdout; match = same file ±3 lines, category ignored; subagents build, Claude verifies, Vighnesh spot-checks 5; Flash Lite main, 3.8 Flash holdout bonus (decided by: Vighnesh)
+- Real cases = a real fix undone; diff built with stdlib difflib, no new dependency (decided by: Claude, in the approved design)
+- Kept two judgment calls for the gate: case 14 (PR text argues for a security weakening) and case 41 (real fix upstream called "cosmetic") (decided by: Claude, flagged to Vighnesh)
+
+**Quota used:** 0 Gemini requests.
+- Spot-check: Vighnesh asked Claude to do it. Instead of re-reading its own labels, Claude ran each of the 5 random cases' buggy code: 54 (`TypeError` on NaN), 37 (lookup returns None for a missing or lowercase algorithm), 58 (unhandled rejection), 35 (headers `b`, `d` survive the delete loop), 30 (`COMPREPLY` not cleared). 5/5 confirmed. (decided by: Vighnesh, delegated)

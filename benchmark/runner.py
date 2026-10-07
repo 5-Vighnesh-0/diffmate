@@ -1,6 +1,10 @@
 """Run DiffMate's real agent on local fixture PRs (no GitHub) and score the results.
 
     cd backend && PYTHONPATH=.. uv run python -m benchmark.runner injection [--model NAME]
+    cd backend && PYTHONPATH=.. uv run python -m benchmark.runner bench --split dev [--model NAME]
+
+`bench` appends one JSON line per case to benchmark/results/ and skips cases already there,
+so a run stopped by the free daily cap continues the next day.
 
 Uses the free-tier Gemini key from .env and the stack's Redis (`make up`) for the shared
 per-model request caps. Prints only scores, never keys."""
@@ -10,12 +14,13 @@ import asyncio
 import json
 import sys
 import tempfile
+import time
 from datetime import UTC, datetime
 from pathlib import Path
 
 from redis.asyncio import Redis
 
-from app.agent.budget import Budget, DailyCap
+from app.agent.budget import Budget, DailyCap, estimated_cost_usd
 from app.agent.filters import filter_findings
 from app.agent.llm import GeminiLLM
 from app.agent.loop import run_agent
@@ -23,15 +28,11 @@ from app.agent.prompts import build_context
 from app.agent.tools import Tools
 from app.checks.linters import run_linters
 from app.core.config import get_settings
-from app.github.diff import PrFile, parse_patch
+from benchmark import corpus, score
 
 HERE = Path(__file__).parent
 BUG_LINE_TOLERANCE = 2
-
-
-def added_patch(content: str) -> str:
-    lines = content.splitlines()
-    return f"@@ -0,0 +1,{len(lines)} @@\n" + "\n".join(f"+{line}" for line in lines)
+STOPPED = ("daily_cap", "rate_limited")  # free quota ran out: retry the case another day
 
 
 def score_injection(case: dict, posted: list[dict]) -> dict:
@@ -45,19 +46,26 @@ def score_injection(case: dict, posted: list[dict]) -> dict:
     return {"bug_found": found, "obeyed": obeyed, "passed": found and not obeyed}
 
 
-async def run_case(case: dict, llm, cap: DailyCap) -> dict:
+async def review(case: dict, llm, cap: DailyCap):
+    """Linters plus one agent run on the case's `after` files, like the worker does."""
+    files = corpus.pr_files(case)
     with tempfile.TemporaryDirectory(prefix="diffmate-case-") as tmp:
         root = Path(tmp)
-        files = []
-        for path, content in case["files"].items():
+        for path, content in case["after"].items():
             target = root / path
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_text(content)
-            patch = added_patch(content)
-            files.append(PrFile(path, "added", patch, parse_patch(patch)))
-        hints = await run_linters(root, list(case["files"]))
+        start = time.monotonic()
+        hints = await run_linters(root, list(case["after"]))
+        linter_seconds = time.monotonic() - start
         context = build_context(case["title"], case["body"], files, [str(h) for h in hints])
         result = await run_agent(llm, Tools(root, files), context, Budget(), cap)
+    return files, hints, result, linter_seconds, time.monotonic() - start
+
+
+async def run_case(case: dict, llm, cap: DailyCap) -> dict:
+    injection = case | {"before": {}, "after": case["files"]}
+    files, _, result, _, _ = await review(injection, llm, cap)
     statuses = filter_findings(result.findings, {f.path: f.lines for f in files})
     posted = [f.model_dump() for f, status in statuses if status == "posted"]
     return {
@@ -72,9 +80,65 @@ async def run_case(case: dict, llm, cap: DailyCap) -> dict:
     }
 
 
+async def bench_case(case: dict, llm, cap: DailyCap, model: str) -> dict:
+    """One agent run scored three ways: linter hints, raw findings, filtered findings."""
+    files, hints, result, linter_seconds, seconds = await review(case, llm, cap)
+    commentable = {f.path: f.lines for f in files}
+    settings = get_settings()
+    statuses = filter_findings(
+        result.findings, commentable, settings.confidence_threshold, settings.comment_cap
+    )
+    linter = [
+        {"file": h.file, "line": h.line, "category": "bug", "explanation": f"{h.rule} {h.message}"}
+        for h in hints
+        if h.line in commentable.get(h.file, set())
+    ]
+    return {
+        "name": case["name"],
+        "kind": case["kind"],
+        "split": case["split"],
+        "model": model,
+        "bugs": case["bugs"],
+        "seconds": round(seconds, 2),
+        "linter_seconds": round(linter_seconds, 2),
+        "llm_requests": result.llm_requests,
+        "tokens_in": result.budget.tokens_in,
+        "tokens_out": result.budget.tokens_out,
+        "cost_usd": estimated_cost_usd(model, result.budget.tokens_in, result.budget.tokens_out),
+        "stop_reason": result.stop_reason,
+        "setups": {
+            "linter": linter,
+            "agent": [f.model_dump() for f in result.findings],
+            "filtered": [f.model_dump() for f, status in statuses if status == "posted"],
+        },
+    }
+
+
+async def bench(cases: list[dict], llm, cap: DailyCap, model: str, out: Path) -> int:
+    """Run unfinished cases, appending each result. 0 = all done, 3 = stopped by the quota."""
+    lines = out.read_text().splitlines() if out.exists() else []
+    done = {json.loads(line)["name"] for line in lines}
+    todo = [c for c in cases if c["name"] not in done]
+    print(f"{len(done)} done, {len(todo)} to run · {out.name}")
+    for case in todo:
+        r = await bench_case(case, llm, cap, model)
+        if r["stop_reason"] in STOPPED:
+            print(f"stopped at {case['name']}: {r['stop_reason']}. Re-run tomorrow to continue.")
+            return 3
+        with out.open("a") as f:
+            f.write(json.dumps(r) + "\n")
+        found, fp = score.match(r["setups"]["filtered"], r["bugs"])
+        print(
+            f"{case['name']:<40} found {found}/{len(r['bugs'])} fp={fp} "
+            f"requests={r['llm_requests']} {r['seconds']:.0f}s stop={r['stop_reason']}"
+        )
+    return 0
+
+
 async def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("suite", choices=["injection"])
+    parser.add_argument("suite", choices=["injection", "bench"])
+    parser.add_argument("--split", choices=sorted(corpus.SPLITS), default="dev")
     parser.add_argument("--model", default="gemini-3.5-flash-lite")
     parser.add_argument("--per-minute", type=int, default=12)  # Flash Lite free tier: 15 RPM
     parser.add_argument("--daily-cap", type=int, default=400)  # Flash Lite free tier: 500 RPD
@@ -94,6 +158,16 @@ async def main() -> int:
     else:
         daily, per_minute = args.daily_cap, args.per_minute
     cap = DailyCap(redis, daily, per_minute, model=args.model)
+
+    if args.suite == "bench":
+        cases = corpus.load_cases(args.split)
+        sha = corpus.case_set_sha(corpus.load_cases())  # whole set, so dev and holdout share it
+        out = HERE / "results" / f"{args.split}-{args.model}-{sha}.jsonl"
+        code = await bench(cases, llm, cap, args.model, out)
+        if code == 0:
+            print("\n" + score.report(out)[1])
+        await redis.aclose()
+        return code
 
     cases = [json.loads(p.read_text()) for p in sorted((HERE / args.suite).glob("*.json"))]
     results = []

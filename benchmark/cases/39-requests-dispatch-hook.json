@@ -1,0 +1,27 @@
+{
+  "name": "39-requests-dispatch-hook",
+  "kind": "seeded",
+  "split": "dev",
+  "source": {
+    "repo": "psf/requests",
+    "commit": "611c6162cbc4ac2020a2f91c7cfa4f3abf9bbb60",
+    "license": "Apache-2.0"
+  },
+  "title": "Simplify dispatch_hook",
+  "body": "Flattens dispatch_hook: a single callable is wrapped in a list using the builtin callable(), the loop runs over an empty tuple when no hooks are registered, and a hook's return value replaces the current data unless the hook returned nothing.",
+  "before": {
+    "src/requests/hooks.py": "\"\"\"\nrequests.hooks\n~~~~~~~~~~~~~~\n\nThis module provides the capabilities for the Requests hooks system.\n\nAvailable hooks:\n\n``response``:\n    The response generated from a Request.\n\"\"\"\n\nfrom __future__ import annotations\n\nfrom collections.abc import Callable, Iterable\nfrom typing import TYPE_CHECKING, Any\n\nif TYPE_CHECKING:\n    from . import _types as _t\n    from .models import Response\n\nHOOKS: list[str] = [\"response\"]\n\n\ndef default_hooks() -> dict[str, list[_t.HookType]]:\n    return {event: [] for event in HOOKS}\n\n\n# TODO: response is the only one\n\n\ndef dispatch_hook(\n    key: str,\n    hooks: _t.HooksInputType | None,\n    hook_data: Response,\n    **kwargs: Any,\n) -> Response:\n    \"\"\"Dispatches a hook dictionary on a given piece of data.\"\"\"\n    hooks_dict = hooks or {}\n    hook_list: Iterable[_t.HookType] | _t.HookType | None = hooks_dict.get(key)\n    if hook_list:\n        if isinstance(hook_list, Callable):\n            hook_list = [hook_list]\n        for hook in hook_list:\n            _hook_data = hook(hook_data, **kwargs)\n            if _hook_data is not None:\n                hook_data = _hook_data\n    return hook_data\n"
+  },
+  "after": {
+    "src/requests/hooks.py": "\"\"\"\nrequests.hooks\n~~~~~~~~~~~~~~\n\nThis module provides the capabilities for the Requests hooks system.\n\nAvailable hooks:\n\n``response``:\n    The response generated from a Request.\n\"\"\"\n\nfrom __future__ import annotations\n\nfrom collections.abc import Iterable\nfrom typing import TYPE_CHECKING, Any\n\nif TYPE_CHECKING:\n    from . import _types as _t\n    from .models import Response\n\nHOOKS: list[str] = [\"response\"]\n\n\ndef default_hooks() -> dict[str, list[_t.HookType]]:\n    return {event: [] for event in HOOKS}\n\n\n# TODO: response is the only one\n\n\ndef dispatch_hook(\n    key: str,\n    hooks: _t.HooksInputType | None,\n    hook_data: Response,\n    **kwargs: Any,\n) -> Response:\n    \"\"\"Dispatches a hook dictionary on a given piece of data.\"\"\"\n    hooks_dict = hooks or {}\n    hook_list: Iterable[_t.HookType] | _t.HookType | None = hooks_dict.get(key)\n    if callable(hook_list):\n        hook_list = [hook_list]\n    for hook in hook_list or ():\n        hook_data = hook(hook_data, **kwargs) or hook_data\n    return hook_data\n"
+  },
+  "bugs": [
+    {
+      "file": "src/requests/hooks.py",
+      "line_start": 44,
+      "line_end": 44,
+      "category": "bug",
+      "why": "`or` tests truthiness rather than `is not None`; Response.__bool__ is False for 4xx/5xx, so a hook that returns a new error Response (e.g. HTTPDigestAuth.handle_401 resending and getting 401/403) is silently discarded and the old response kept."
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "name": "57-vitest-wildcard-single-char",
+  "kind": "seeded",
+  "split": "dev",
+  "source": {
+    "repo": "vitest-dev/vitest",
+    "commit": "b61d1ced3a11fea09e02a95a8b8fbcecbf0944ac",
+    "license": "MIT"
+  },
+  "title": "Support `?` in wildcard patterns",
+  "body": "wildcardPatternToRegExp only understood `*`. This adds `?` as a single-character wildcard, splitting on it before escaping the literal parts, and documents the supported syntax.",
+  "before": {
+    "packages/vitest/src/utils/base.ts": "import type { ModuleDefinitionLocation } from '../types/module-locations'\n\nexport function groupBy<T, K extends string | number | symbol>(\n  collection: T[],\n  iteratee: (item: T) => K,\n): Record<K, T[]> {\n  return collection.reduce(\n    (acc, item) => {\n      const key = iteratee(item)\n      acc[key] ||= []\n      acc[key].push(item)\n      return acc\n    },\n    {} as Record<K, T[]>,\n  )\n}\n\nexport function stdout(): NodeJS.WriteStream {\n  // @ts-expect-error Node.js maps process.stdout to console._stdout\n  // oxlint-disable-next-line no-console\n  return console._stdout || process.stdout\n}\n\nexport function escapeRegExp(s: string): string {\n  // From https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions#escaping\n  return s.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&') // $& means the whole matched string\n}\n\nexport function wildcardPatternToRegExp(pattern: string): RegExp {\n  return new RegExp(`^${pattern.split('*').map(escapeRegExp).join('.*')}$`, 'i')\n}\n\nexport function createIndexLocationsMap(source: string): Map<number, ModuleDefinitionLocation> {\n  const map = new Map<number, ModuleDefinitionLocation>()\n  let index = 0\n  let line = 1\n  let column = 1\n  for (const char of source) {\n    map.set(index++, { line, column })\n    if (char === '\\n' || char === '\\r\\n') {\n      line++\n      column = 0\n    } else {\n      column++\n    }\n  }\n  return map\n}\n\nexport function createLocationsIndexMap(source: string): Map<string, number> {\n  const map = new Map<string, number>()\n  let index = 0\n  let line = 1\n  let column = 1\n  for (const char of source) {\n    map.set(`${line}:${column}`, index++)\n    if (char === '\\n' || char === '\\r\\n') {\n      line++\n      column = 0\n    } else {\n      column++\n    }\n  }\n  return map\n}\n"
+  },
+  "after": {
+    "packages/vitest/src/utils/base.ts": "import type { ModuleDefinitionLocation } from '../types/module-locations'\n\nexport function groupBy<T, K extends string | number | symbol>(\n  collection: T[],\n  iteratee: (item: T) => K,\n): Record<K, T[]> {\n  return collection.reduce(\n    (acc, item) => {\n      const key = iteratee(item)\n      acc[key] ||= []\n      acc[key].push(item)\n      return acc\n    },\n    {} as Record<K, T[]>,\n  )\n}\n\nexport function stdout(): NodeJS.WriteStream {\n  // @ts-expect-error Node.js maps process.stdout to console._stdout\n  // oxlint-disable-next-line no-console\n  return console._stdout || process.stdout\n}\n\nexport function escapeRegExp(s: string): string {\n  // From https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions#escaping\n  return s.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&') // $& means the whole matched string\n}\n\n/**\n * Converts a glob-like pattern to a case-insensitive RegExp.\n * `*` matches any sequence of characters and `?` matches a single character.\n */\nexport function wildcardPatternToRegExp(pattern: string): RegExp {\n  const source = pattern\n    .split('*')\n    .map(part => part.split('?').map(escapeRegExp).join('.'))\n    .join('.*')\n  return new RegExp(`^${source}`, 'i')\n}\n\nexport function createIndexLocationsMap(source: string): Map<number, ModuleDefinitionLocation> {\n  const map = new Map<number, ModuleDefinitionLocation>()\n  let index = 0\n  let line = 1\n  let column = 1\n  for (const char of source) {\n    map.set(index++, { line, column })\n    if (char === '\\n' || char === '\\r\\n') {\n      line++\n      column = 0\n    } else {\n      column++\n    }\n  }\n  return map\n}\n\nexport function createLocationsIndexMap(source: string): Map<string, number> {\n  const map = new Map<string, number>()\n  let index = 0\n  let line = 1\n  let column = 1\n  for (const char of source) {\n    map.set(`${line}:${column}`, index++)\n    if (char === '\\n' || char === '\\r\\n') {\n      line++\n      column = 0\n    } else {\n      column++\n    }\n  }\n  return map\n}\n"
+  },
+  "bugs": [
+    {
+      "file": "packages/vitest/src/utils/base.ts",
+      "line_start": 38,
+      "line_end": 38,
+      "category": "bug",
+      "why": "The trailing `$` anchor was dropped, so patterns now match any string that merely starts with the pattern (e.g. 'foo' matches 'foobar')."
+    }
+  ]
+}

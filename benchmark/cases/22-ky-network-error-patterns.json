@@ -1,0 +1,27 @@
+{
+  "name": "22-ky-network-error-patterns",
+  "kind": "seeded",
+  "split": "dev",
+  "source": {
+    "repo": "sindresorhus/ky",
+    "commit": "0d59458a0a58e1c3d7c6db0ab17ed5c7cd671e47",
+    "license": "MIT"
+  },
+  "title": "Use regexes for Safari and Chrome network error messages",
+  "body": "Replace the startsWith/endsWith checks for the \"Load failed (host)\" and \"Failed to fetch (host)\" message variants with two small regexes.",
+  "before": {
+    "source/utils/is-network-error.ts": "// Inlined from https://github.com/sindresorhus/is-network-error v1.3.2\n\nconst objectToString = Object.prototype.toString;\n\nconst isError = (value: unknown): value is Error => objectToString.call(value) === '[object Error]';\n\nconst errorMessages = new Set([\n\t'network error', // Chrome\n\t'NetworkError when attempting to fetch resource.', // Firefox\n\t'The Internet connection appears to be offline.', // Safari 16\n\t'Network request failed', // `cross-fetch`\n\t'fetch failed', // Undici (Node.js)\n\t'terminated', // Undici (Node.js)\n\t' A network error occurred.', // Bun (WebKit) - leading space is intentional\n\t'Network connection lost', // Cloudflare Workers (fetch)\n]);\n\nexport default function isRawNetworkError(error: unknown): error is TypeError {\n\tconst isValid = error\n\t\t&& isError(error)\n\t\t&& error.name === 'TypeError'\n\t\t&& typeof error.message === 'string';\n\n\tif (!isValid) {\n\t\treturn false;\n\t}\n\n\tconst {message, stack} = error;\n\n\t// Safari 17+ has generic message but no stack for network errors\n\tif (message === 'Load failed' || (message.startsWith('Load failed (') && message.endsWith(')'))) {\n\t\treturn stack === undefined\n\t\t\t// Sentry adds its own stack trace to the fetch error, so also check for that\n\t\t\t|| '__sentry_captured__' in error;\n\t}\n\n\t// Deno network errors start with specific text\n\tif (message.startsWith('error sending request for url')) {\n\t\treturn true;\n\t}\n\n\t// Chrome: exact \"Failed to fetch\" or with hostname: \"Failed to fetch (example.com)\"\n\tif (message === 'Failed to fetch' || (message.startsWith('Failed to fetch (') && message.endsWith(')'))) {\n\t\treturn true;\n\t}\n\n\t// Standard network error messages\n\treturn errorMessages.has(message);\n}\n"
+  },
+  "after": {
+    "source/utils/is-network-error.ts": "// Inlined from https://github.com/sindresorhus/is-network-error v1.3.2\n\nconst objectToString = Object.prototype.toString;\n\nconst isError = (value: unknown): value is Error => objectToString.call(value) === '[object Error]';\n\nconst errorMessages = new Set([\n\t'network error', // Chrome\n\t'NetworkError when attempting to fetch resource.', // Firefox\n\t'The Internet connection appears to be offline.', // Safari 16\n\t'Network request failed', // `cross-fetch`\n\t'fetch failed', // Undici (Node.js)\n\t'terminated', // Undici (Node.js)\n\t' A network error occurred.', // Bun (WebKit) - leading space is intentional\n\t'Network connection lost', // Cloudflare Workers (fetch)\n]);\n\nconst safariLoadFailedPattern = /^Load failed(?: \\(.+\\))?$/;\nconst chromeFailedToFetchPattern = /^Failed to fetch(?: \\(.+\\))?/;\n\nexport default function isRawNetworkError(error: unknown): error is TypeError {\n\tconst isValid = error\n\t\t&& isError(error)\n\t\t&& error.name === 'TypeError'\n\t\t&& typeof error.message === 'string';\n\n\tif (!isValid) {\n\t\treturn false;\n\t}\n\n\tconst {message, stack} = error;\n\n\t// Safari 17+ has generic message but no stack for network errors\n\tif (safariLoadFailedPattern.test(message)) {\n\t\treturn stack === undefined\n\t\t\t// Sentry adds its own stack trace to the fetch error, so also check for that\n\t\t\t|| '__sentry_captured__' in error;\n\t}\n\n\t// Deno network errors start with specific text\n\tif (message.startsWith('error sending request for url')) {\n\t\treturn true;\n\t}\n\n\t// Chrome: exact \"Failed to fetch\" or with hostname: \"Failed to fetch (example.com)\"\n\tif (chromeFailedToFetchPattern.test(message)) {\n\t\treturn true;\n\t}\n\n\t// Standard network error messages\n\treturn errorMessages.has(message);\n}\n"
+  },
+  "bugs": [
+    {
+      "file": "source/utils/is-network-error.ts",
+      "line_start": 19,
+      "line_end": 19,
+      "category": "bug",
+      "why": "The Chrome pattern lacks a trailing $ anchor, so any TypeError starting with \"Failed to fetch\" (e.g. \"Failed to fetch dynamically imported module\") is treated as a network error and retried."
+    }
+  ]
+}
