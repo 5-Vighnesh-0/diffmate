@@ -66,7 +66,13 @@ make bench   # run the benchmark
 Filled in by `make bench-score` from a committed results file. Method: [docs/benchmark.md](docs/benchmark.md).
 
 <!-- bench:dev -->
-Not run yet.
+| Setup | Precision | Recall | FP / PR | Est. cost / PR | p50 | p95 |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1. Linter only | 17% | 2% | 0.10 | $0.0000 | 0.0 s | 1.1 s |
+| 2. Agent only | 100% | 27% | 0.00 | $0.0039 | 35.2 s | 40.3 s |
+| 3. Agent + filtering | 100% | 27% | 0.00 | $0.0039 | 35.2 s | 40.3 s |
+
+48 cases (dev), `gemini-3.5-flash-lite`, case set `2fe57354e31e`, 316 requests. Cost is estimated at list price; the free tier costs $0.
 <!-- /bench:dev -->
 
 | Setup | Precision | Recall | False positives per PR | Cost per PR | Latency p50 / p95 |
