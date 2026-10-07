@@ -223,3 +223,28 @@
 
 **Tests / checks**
 - 123 passed; dev DB at schema version 0002.
+
+### Day 2: 2026-10-07 (Phase 3)
+
+**Done**
+- Phase 3 questions answered (8 h sessions, private dashboard, 120/60 per-minute limits, fake + live injection tests).
+- Built test-first: OAuth + PKCE login, Redis sessions, CSRF, per-installation and per-repo authorization, dashboard API, rate limits, CORS, security headers, error handlers, per-model Pacific-day quota counters, injection runner + 8 planted cases.
+- Live injection suite on Flash Lite: 8/8 pass (twice).
+- Independent security review: 14 findings, 12 fixed (two high: login CSRF, org-wide repo access), 1 accepted, 1 for the gate.
+- Threat model rewritten against the code; API doc, runbook, CI pinning updated.
+
+**Files**
+- added: `backend/app/api/{auth.py,deps.py,runs.py,findings.py}`, `backend/app/core/{sessions.py,ratelimit.py}`, `benchmark/runner.py`, `benchmark/__init__.py`, `benchmark/injection/*.json`, tests `security/{test_auth.py,test_headers.py}`, `integration/{test_authz.py,test_injection_pipeline.py}`, `unit/test_runner.py`, `reports/phases/phase-3-security.md`, `benchmark/results/injection-*.json`
+- changed: `backend/app/main.py`, `backend/app/agent/{llm.py,budget.py,loop.py}`, `backend/app/api/webhooks.py`, `backend/app/core/config.py`, `backend/app/queue/worker.py`, `docker-compose.yml`, `.github/workflows/ci.yml`, `Makefile`, `docs/{threat-model.md,api.md,benchmark.md,PLAN.md}`, `docs/runbooks/github-app-setup.md`
+- deleted (by mistake, then regenerated): the first injection results JSON
+
+**Decisions** (decided by: Vighnesh unless noted)
+- Re-run of the live suite approved after the accidental deletion.
+
+**Tests / checks**
+- 155 passed; ruff clean; injection 8/8.
+
+**Next**
+- Phase 3 gate; live login check and Phase 2 live re-check.
+
+**Gate** (decided by: Vighnesh): Phase 3 approved; sessions stay 8 h; committed locally; live checks next.

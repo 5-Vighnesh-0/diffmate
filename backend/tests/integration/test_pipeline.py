@@ -53,6 +53,9 @@ class FakeRedis:
     async def expire(self, key, seconds):
         pass
 
+    async def set(self, key, value, nx=False, ex=None):
+        pass
+
 
 def tarball() -> bytes:
     buf = io.BytesIO()

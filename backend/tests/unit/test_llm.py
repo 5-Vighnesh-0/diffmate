@@ -88,3 +88,17 @@ def test_sdk_retries_only_server_errors_never_429():
 
     retry = llm.client.aio.interactions.sdk_configuration.retry_config
     assert retry.status_codes_override == ["500", "502", "503", "504"]
+
+
+async def test_sdk_rate_limit_errors_with_status_code_are_rate_limited_too():
+    from app.agent.llm import LlmRateLimited
+
+    class RateLimitError(Exception):  # shape of google.genai's compat RateLimitError
+        status_code = 429
+
+    class Limited(FakeInteractions):
+        async def create(self, **kwargs):
+            raise RateLimitError("rate limited")
+
+    with pytest.raises(LlmRateLimited):
+        await llm_with(Limited()).step("sys", [], [], 512)

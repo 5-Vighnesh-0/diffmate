@@ -36,6 +36,17 @@ class FakeLLM:
 class FakeRedis:
     def __init__(self):
         self.counts = {}
+        self.values = {}
+
+    async def get(self, key):
+        return self.values.get(key)
+
+    async def set(self, key, value, nx=False, ex=None):
+        if nx:  # counters: only make sure the key exists (with its TTL)
+            if ex:
+                self.expiry = ex
+            return None
+        self.values[key] = value
 
     async def incr(self, key):
         self.counts[key] = self.counts.get(key, 0) + 1
@@ -117,7 +128,7 @@ async def test_daily_cap_counts_per_utc_day_and_expires():
     daily = DailyCap(redis, 2)
 
     assert [await daily.take() for _ in range(3)] == [True, True, False]
-    assert redis.expiry == 2 * 24 * 3600
+    assert redis.expiry == 2 * 24 * 3600  # set together with the key, before counting
 
 
 def test_estimated_cost_uses_list_price():
@@ -209,6 +220,22 @@ async def test_requests_are_spaced_to_the_per_minute_limit():
         now["t"] += seconds
 
     daily = DailyCap(FakeRedis(), 100, per_minute=2, clock=lambda: now["t"], sleep=fake_sleep)
+    sent_at = []
+    for _ in range(4):
+        assert await daily.take() is True
+        sent_at.append(now["t"])
 
-    assert [await daily.take() for _ in range(3)] == [True, True, True]
-    assert slept == [pytest.approx(30.0, abs=1.5)]  # third call waits for the next minute
+    # Evenly spaced (60 s / 2): no rolling 60-second window can hold more than 2 + 1 calls,
+    # unlike per-clock-minute counting, which allows bursts across a minute boundary.
+    assert [b - a for a, b in zip(sent_at, sent_at[1:], strict=False)] == [30.0, 30.0, 30.0]
+
+
+async def test_daily_cap_counts_per_model_and_per_google_day():
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    redis = FakeRedis()
+    await DailyCap(redis, 5, model="gemini-3.8-flash").take()
+
+    pacific_day = datetime.now(ZoneInfo("America/Los_Angeles")).strftime("%Y-%m-%d")
+    assert list(redis.counts) == [f"llm:requests:gemini-3.8-flash:{pacific_day}"]

@@ -63,9 +63,14 @@ docker compose logs -f worker
 
    Expect `401`.
 
-## Later: dashboard login (Phase 3)
+## Dashboard login (GitHub OAuth through the same App)
 
-The same App provides OAuth: App settings → **Client ID** into `GITHUB_OAUTH_CLIENT_ID`; generate a client secret into `GITHUB_OAUTH_CLIENT_SECRET`. The callback URL is set in Phase 3.
+1. App settings → **General** → **Callback URL**: `http://localhost:8000/auth/callback` (local dev; the deployed URL is added in Phase 6). Leave "Request user authorization (OAuth) during installation" unticked.
+2. Copy the **Client ID** into `.env` as `GITHUB_OAUTH_CLIENT_ID`.
+3. **Generate a new client secret** and paste it straight into `.env` as `GITHUB_OAUTH_CLIENT_SECRET` (never into chat). If an old secret ever leaked, delete it there.
+4. `make up`, then open `http://localhost:8000/auth/login`: GitHub asks you to authorize the App and sends you back to the dashboard.
+
+Login uses state + PKCE (S256); the session is an 8-hour HttpOnly cookie; the GitHub user token is used once and never stored.
 
 ## If a secret leaks
 

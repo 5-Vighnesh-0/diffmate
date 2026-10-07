@@ -35,6 +35,13 @@ class FakeArq:
     async def delete(self, key):
         self.keys.pop(key, None)
 
+    async def incr(self, key):  # rate-limit counter
+        self.keys[key] = str(int(self.keys.get(key, "0")) + 1)
+        return int(self.keys[key])
+
+    async def expire(self, key, seconds):
+        pass
+
     async def enqueue_job(self, function, *args, _job_id=None, **kwargs):
         if self.fail_enqueue:
             raise ConnectionError("redis down")

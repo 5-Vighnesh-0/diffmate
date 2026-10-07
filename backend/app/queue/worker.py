@@ -159,7 +159,10 @@ async def _review(ctx, token: str, run_id: int, repo: str, pr: int, sha: str, in
             context,
             Budget(settings.agent_max_steps, settings.agent_max_tokens),
             DailyCap(
-                ctx["redis"], settings.llm_daily_request_cap, settings.llm_requests_per_minute
+                ctx["redis"],
+                settings.llm_daily_request_cap,
+                settings.llm_requests_per_minute,
+                model=settings.llm_model,
             ),
         )
 
@@ -257,6 +260,9 @@ class WorkerSettings:
     on_shutdown = shutdown
     redis_settings = RedisSettings.from_dsn(get_settings().redis_url)
     job_timeout = JOB_TIMEOUT_SECONDS
+    # One review at a time: the free tier allows only a few requests per minute anyway, and
+    # serial jobs keep the shared request spacing exact.
+    max_jobs = 1
     # The runs table (unique PR + SHA) decides "one review per commit"; arq only needs to drop
     # duplicates while a job is queued or running, so failed commits stay retryable.
     keep_result = 60

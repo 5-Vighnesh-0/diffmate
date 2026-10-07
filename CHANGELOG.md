@@ -6,6 +6,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: no
 
 ### Security
 
+- Phase 3: GitHub OAuth login (state bound to the browser, PKCE S256), Redis sessions, CSRF tokens, per-installation and per-repo authorization, rate limits, CORS allowlist, security headers, uniform errors, per-model Pacific-day quota counters, CI Actions pinned to SHAs. Live injection suite 8/8 on Flash Lite.
 - Phase 2 hardening: linter argument injection closed (`--`), tarball size/entry caps, bounded tools, untrusted-content marking for file names and tool output, bot-only review markers, httpx URLs not logged.
 - Webhook replay protection keys on the signature (the delivery header is unsigned); non-ASCII signature headers rejected cleanly; repo name and SHA validated before use in API paths.
 - Each container receives only the secrets it uses; frontend container runs as non-root.
