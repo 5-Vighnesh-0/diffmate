@@ -248,3 +248,10 @@
 - Phase 3 gate; live login check and Phase 2 live re-check.
 
 **Gate** (decided by: Vighnesh): Phase 3 approved; sessions stay 8 h; committed locally; live checks next.
+
+### Day 2, later: live login
+
+- User set the App's Callback URL and a new client secret (old one deleted).
+- First logins failed with GitHub `invalid_grant`: the PKCE verifier went out as `b'…'` because real Redis returns bytes. Fixed and covered by a realistic test fake; access log (which printed OAuth codes) disabled.
+- Login works: `5-Vighnesh-0`, 1 installation, 1 repo; replayed callback links rejected.
+- The cloudflared quick tunnel dropped and would not reconnect; needs a restart for the Phase 2 re-review.
