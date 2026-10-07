@@ -1,0 +1,230 @@
+# Build Plan
+
+> **For agentic workers:** use superpowers:subagent-driven-development or superpowers:executing-plans per phase. Each phase gets its own detailed task plan (files, tests, commands) written at the start of that phase and appended below its section. Steps use `- [ ]` checkboxes.
+
+**Goal:** an AI agent that reviews GitHub PRs and posts at most 5 inline comments, proven by a 60+ PR benchmark, shipped with a dashboard and a scroll-driven landing page, at $0 cost.
+
+**Architecture:** GitHub App webhook → FastAPI (HMAC check, replay check) → Redis queue (arq, job ID = commit SHA) → worker (ruff/ESLint, then a Gemini agent loop with four read-only tools under step/token/request caps) → schema-validated findings → filter (confidence, dedupe, cap) → inline review comments. Postgres stores runs, findings, and trace metadata; React reads them through the API. Details: [architecture.md](architecture.md).
+
+**Tech stack:** Python 3.12 (uv), FastAPI, SQLAlchemy 2 + Alembic, Postgres, Redis + arq, Google Gemini API (free tier), TypeScript + React (Vite, pnpm) + Framer Motion, Docker, GitHub Actions, Caddy.
+
+## Global constraints
+
+- **$0 total spend.** Free tiers only. The Gemini key comes from a Google project with **no billing account attached**. A daily LLM request cap (`LLM_DAILY_REQUEST_CAP`) pauses new runs when hit. Cost per PR is an *estimate* at public list prices, always labelled as an estimate.
+- Free-tier Gemini prompts may be used by Google to improve products: review only public/open-source code on the free tier.
+- No secrets in files, logs, or chat. `.env.example` holds names only. The user sets real values.
+- Agent tools are read-only. No shell, network, or write tool.
+- Comment cap 5, confidence threshold 0.7 (defaults, in config; tuned on the dev split only).
+- Animate only `transform` and `opacity`. Follow `docs/DESIGN.md` exactly.
+- No dependency beyond the approved list below without asking.
+- Every working day is logged in `reports/weekly/`, every gate in `reports/phases/`.
+
+## Decisions (Phase 0, 2026-10-06, decided by Vighnesh)
+
+| Topic | Decision | Notes |
+| --- | --- | --- |
+| Project path | `~/Desktop/projects/diffmate`, `git init`, no remote yet | |
+| Budget | $0, enforced in code | Request cap + no-billing key |
+| LLM | Google Gemini API free tier, `gemini-3.8-flash` | `LLM_PROVIDER` / `LLM_MODEL` in `.env`. Free-tier limits per account: read them in AI Studio → Rate limits, set the cap below them |
+| Hosting | Decide in Phase 6 | Free options only |
+| GitHub App | Not registered yet | Step-by-step in `docs/runbooks/github-app-setup.md` |
+| Python tooling | uv, Python 3.12 | uv installs 3.12 locally; system Python 3.14 untouched |
+| JS tooling | pnpm | Already installed |
+| Dashboard login | GitHub OAuth (state + PKCE), session in Redis, httpOnly/Secure/SameSite=Lax cookie | |
+| Queue | arq | Async; job ID = `{repo}:{pr}:{sha}` gives one run per commit |
+| Webhook tunnel | cloudflared quick tunnel | Already installed; URL changes per run |
+| Docker | User installs Docker Engine + compose plugin (needs sudo) | Needed by end of Phase 1 |
+| Name | DiffMate (revisit in Phase 6) | |
+| Extra skills | Installed after vetting (see `reports/weekly/week-0.md`) | |
+
+## Proposed dependencies (one approval)
+
+Versions: latest stable at install time, pinned by `uv.lock` and `pnpm-lock.yaml`. Small things are written by hand instead of adding a library: rate limiting (Redis `INCR`), CSRF (double-submit token), OAuth + PKCE (httpx), security headers (middleware), JSON logs (stdlib).
+
+**Backend runtime**
+
+| Package | Why |
+| --- | --- |
+| fastapi | API framework (decided stack) |
+| uvicorn[standard] | ASGI server |
+| pydantic-settings | Typed config from env vars |
+| sqlalchemy[asyncio] | ORM, parameterized queries |
+| asyncpg | Async Postgres driver |
+| alembic | Migrations |
+| arq | Redis job queue (brings `redis`) |
+| httpx | GitHub API and OAuth calls |
+| pyjwt[crypto] | GitHub App JWT (RS256) |
+| google-genai | Gemini API SDK (official, current) |
+| ruff | Linter step on PR files (also our own linter) |
+
+**Backend dev:** pytest, pytest-asyncio, pip-audit.
+
+**Frontend runtime:** react, react-dom, react-router, motion (Framer Motion's current package name), @fontsource/anton, @fontsource/inter, @fontsource/jetbrains-mono (self-hosted fonts: no Google Fonts request, simpler CSP).
+
+**Frontend dev:** vite, @vitejs/plugin-react, typescript, eslint, typescript-eslint, eslint-plugin-react-hooks, vitest, jsdom, @testing-library/react, @playwright/test.
+
+**Worker image also needs:** Node + ESLint + typescript-eslint, to lint TypeScript PR files.
+
+**Docker images:** postgres:16, redis:7, caddy:2, python:3.12-slim, node:22-slim.
+
+**CI actions:** actions/checkout, astral-sh/setup-uv, pnpm/action-setup, actions/setup-node, gitleaks (official Docker image, free).
+
+## Benchmark repo shortlist (licenses checked 2026-10-06)
+
+| Repo | License | Language |
+| --- | --- | --- |
+| encode/httpx | BSD-3-Clause | Python |
+| pallets/flask | BSD-3-Clause | Python |
+| pallets/click | BSD-3-Clause | Python |
+| psf/requests | Apache-2.0 | Python |
+| fastapi/fastapi | MIT | Python |
+| colinhacks/zod | MIT | TypeScript |
+| sindresorhus/ky | MIT | TypeScript |
+| honojs/hono | MIT | TypeScript |
+| trpc/trpc | MIT | TypeScript |
+| vitest-dev/vitest | MIT | TypeScript |
+
+Fixtures keep only small diffs and labels, with repo, PR link, and license noted per case. `date-fns` was dropped: no license detected by the GitHub API.
+
+**Credit budget:** setup 1 (linters) uses no LLM. Setups 2 and 3 share one agent run per PR (3 = 2 + filter). 60 PRs × ≤ 8 steps ≈ 480 requests per full run, spread across days to stay under the free-tier daily limit.
+
+## Phase 0: Discovery (2026-10-06)
+
+- [x] Read `docs/DESIGN.md`, `docs/PRD.md`, `docs/RULES.md`, ADRs, architecture
+- [x] List available skills; run find-skills per domain; install vetted skills (user approved)
+- [x] Settle open decisions (table above)
+- [x] Dependency list approved (2026-10-06)
+- [x] `docs/adr/0001-stack.md` updated; `docs/adr/0003-free-tier-llm.md` added
+- [x] Plan approved (2026-10-06)
+
+**Gate:** plan and dependency list approved.
+
+## Phase 1: Foundations (week 1, Oct 7 to Oct 13)
+
+No database tables in this phase: the schema is proposed at the Phase 1 gate and migrated in Phase 2 after approval. One run per commit comes from the arq job ID (`review:{repo}:{pr}:{sha}`, results kept 7 days). Unit tests use fakes (fake Redis/arq pool, `httpx.MockTransport`); they never call GitHub or an LLM. Approved dependencies used now: fastapi, uvicorn, pydantic-settings, sqlalchemy[asyncio], asyncpg, arq, httpx, pyjwt[crypto], ruff, pytest, pytest-asyncio, pip-audit; frontend: react, react-dom, vite, @vitejs/plugin-react, typescript. The rest are added in the phase that needs them.
+
+### Task 1.1: Backend skeleton, config, health
+**Files:** `backend/pyproject.toml`, `backend/app/core/config.py`, `backend/app/core/logging.py`, `backend/app/main.py`, `backend/app/api/health.py`, `backend/tests/conftest.py`, `backend/tests/unit/test_health.py`
+**Produces:** `get_settings() -> Settings` (cached; fields `database_url`, `redis_url`, `github_webhook_secret: SecretStr`, `github_app_id`, `github_app_private_key_path`, `webhook_max_body_bytes=1_048_576`, `delivery_ttl_seconds=604800`); `create_app() -> FastAPI` (lifespan opens the arq pool and the DB engine on `app.state`); `GET /health` → `200 {"status":"ok"}` or `503 {"status":"degraded","checks":{...}}`.
+- [x] Test first: health returns 200 when both checks pass, 503 naming the failing check otherwise (checks overridden via dependency)
+- [x] Run: `cd backend && uv run pytest tests/unit/test_health.py -v` → fail, implement, pass
+
+### Task 1.2: Webhook endpoint (signature, replay, size)
+**Files:** `backend/app/core/security.py`, `backend/app/api/webhooks.py`, `backend/tests/unit/test_signature.py`, `backend/tests/security/test_webhook.py`
+**Produces:** `verify_signature(secret: bytes, body: bytes, header: str | None) -> bool` (HMAC SHA-256, `hmac.compare_digest`); `POST /webhooks/github`.
+**Order inside the handler:** size limit (413, also enforced while streaming when Content-Length lies) → signature (401) → delivery ID `SET NX EX` (duplicate → 200, no action) → event filter (`pull_request` + `opened|synchronize|reopened|ready_for_review` → enqueue, 202; else 200 ignored). If enqueueing raises, the delivery key is deleted so GitHub's redelivery still works.
+**Tests (security suite):** bad signature → 401 and no job; missing signature → 401; `sha1=` prefix → 401; tampered body → 401; valid `opened` → 202 with one job `review:o/r:7:<sha>`; same delivery twice → second 200, still one job; body over the limit → 413; `push` event → 200, no job; `closed` action → 200, no job; enqueue failure → 5xx and delivery key released.
+- [x] Write tests, see them fail, implement, see them pass
+
+### Task 1.3: Queue and worker
+**Files:** `backend/app/queue/jobs.py`, `backend/app/queue/worker.py`, `backend/tests/unit/test_jobs.py`, `backend/tests/unit/test_worker.py`
+**Produces:** `review_job_id(repo: str, pr: int, sha: str) -> str`; `enqueue_review(pool, *, repo, pr, sha, installation_id) -> bool` (False when arq already has that job); `review_pr(ctx, repo, pr, sha, installation_id) -> None`; `WorkerSettings` (`keep_result` 7 days, `max_tries` 3).
+**Retries:** network/5xx errors from GitHub raise `arq.Retry(defer=5 * 2**job_try)`; 4xx errors fail without retry.
+**Phase 1 job body:** get an installation token, post one PR comment: "DiffMate received commit `abc1234`. Automated review is not enabled yet." (replaced by the real review in Phase 2).
+- [x] Tests: job ID format; enqueue returns False on duplicate; `review_pr` posts exactly one comment; 502 from GitHub → `Retry`; 404 → no retry
+
+### Task 1.4: GitHub App auth and client
+**Files:** `backend/app/github/app_auth.py`, `backend/app/github/client.py`, `backend/app/github/comments.py`, `backend/tests/unit/test_app_auth.py`
+**Produces:** `make_app_jwt(app_id: int, private_key_pem: str, now: int) -> str` (RS256, `iat=now-60`, `exp=now+540`, `iss=app_id`); `get_installation_token(http, app_jwt, installation_id, repo_name) -> str` (token scoped to that one repo with contents:read, metadata:read, pull_requests:write); `github_http() -> httpx.AsyncClient` (base URL, API version header, 10 s timeout); `post_issue_comment(http, token, repo, pr, body) -> None`.
+- [x] Tests (key pair generated in the test, never stored): JWT verifies with the public key and has the right claims; token exchange hits `/app/installations/{id}/access_tokens` with `Bearer <jwt>` and the scoped body
+
+### Task 1.5: Containers, env, CI, Makefile, minimal frontend
+**Files:** `backend/Dockerfile`, `frontend/{package.json,vite.config.ts,tsconfig.json,index.html,src/main.tsx,src/App.tsx}`, `frontend/Dockerfile`, `docker-compose.yml`, `.env.example`, `.gitignore`, `.gitleaks.toml`, `Makefile`, `.github/workflows/ci.yml`
+- [x] Compose: postgres:16 and redis:7 bound to 127.0.0.1 only; backend (8000), worker (same image, `arq app.queue.worker.WorkerSettings`), frontend dev server (5173); the GitHub App key mounted read-only from outside the repo
+- [x] CI (`actions/checkout@v7`, `astral-sh/setup-uv@v10`, `pnpm/action-setup@v6`, `actions/setup-node@v7`, gitleaks v8.30.1 Docker image): ruff check + format check, pytest, frontend build, gitleaks over full history
+- [x] Run `make lint` and `make test` locally; `uv run pip-audit`
+
+### Task 1.6: Runbooks and the live check
+**Files:** `docs/runbooks/github-app-setup.md` (cloudflared, test repo), `docs/runbooks/deploy.md` (Docker install), `docs/api.md` (final webhook behavior)
+- [x] User installs Docker, creates the GitHub App and the public test repo, sets `.env` (never shared in chat)
+- [x] `docker compose up`, `/health` ok, cloudflared tunnel, open a test PR → the comment appears; altered signature → 401 in the App's delivery log
+
+**Acceptance:** webhook tests pass (bad signature gives 401, replay ignored); the test comment appears on the PR.
+
+## Phase 2: Agent (week 2, Oct 14 to Oct 20)
+
+- [ ] Linter step (ruff, ESLint) on the changed files
+- [ ] LLM client module: provider and model from env; counts requests and tokens; refuses calls over the daily cap
+- [ ] Agent loop with four tools: read file, search repo, view diff hunk, list related tests
+- [ ] Step and token caps; per-run budget tracking (tokens, requests, estimated cost)
+- [ ] Structured findings (file, line, category, severity, confidence, explanation) validated by schema
+- [ ] Inline review comment posting
+
+**Acceptance:** a real PR gets at most 5 sensible comments; a test proves the caps hold.
+
+## Phase 3: Guardrails, auth, security (week 3, Oct 21 to Oct 27)
+
+- [ ] Confidence filter, dedupe, comment cap
+- [ ] Prompt-injection defenses and security tests with planted instructions
+- [ ] GitHub App auth hardening (JWT, short-lived installation tokens)
+- [ ] Dashboard login (GitHub OAuth + PKCE), session cookies, CSRF protection, authorization by installation
+- [ ] Rate limits, security headers, daily request cap surfaced in the dashboard
+- [ ] `docs/threat-model.md` reviewed against the code (add cost abuse of the free quota)
+- [ ] CI adds pip-audit, pnpm audit
+
+**Acceptance:** the security test suite and CI audits are green.
+
+## Phase 4: Benchmark (week 4, Oct 28 to Nov 3)
+
+- [ ] Build 60 to 100 cases from the shortlist: real bug-fix PRs plus seeded bugs, with labels
+- [ ] Freeze the set (target Oct 30) and hold out about 20%
+- [ ] One-command runner and scorer (`make bench`), resumable across days for the free-tier limit
+- [ ] Run all three setups; record precision, recall, false positives per PR, estimated cost per PR, p50 and p95 latency
+- [ ] Write results into `docs/benchmark.md` and the README table
+
+**Acceptance:** results table committed, reproducible with one command.
+
+## Phase 5: Frontend (week 5, Nov 4 to Nov 10)
+
+- [ ] Design tokens and fonts from `docs/DESIGN.md`
+- [ ] Landing page scenes and transitions (T1 to T11)
+- [ ] Dashboard: runs list, step-by-step trace, findings with accept and reject
+- [ ] Results section fed by real benchmark numbers
+- [ ] Reduced-motion layout, mobile adjustments
+- [ ] Route transitions and dashboard micro-motion (T12, T13) if time allows
+
+**Acceptance:** Lighthouse performance 90 or higher; reduced motion verified.
+
+## Phase 6: Ship (week 5, by Nov 10)
+
+- [ ] README with architecture diagram and benchmark table
+- [ ] Pick a free host; deploy per `docs/runbooks/deploy.md`
+- [ ] Demo video script and recording
+- [ ] Final reviews: code review, accessibility review, deploy checklist
+- [ ] Resume bullets written from real numbers
+
+**Acceptance:** all criteria below pass.
+
+## Final acceptance criteria
+
+- [ ] `docker compose up` starts every service and `/health` returns ok
+- [ ] Opening or updating a PR produces at most 5 inline comments, median time under 2 minutes
+- [ ] A webhook with a bad signature gets 401; a replayed delivery ID is ignored
+- [ ] A test proves the agent cannot exceed its step and token caps
+- [ ] Planted prompt-injection PRs do not change the agent's behavior
+- [ ] One command runs the benchmark (60+ PRs) and reports all metrics for all three setups
+- [ ] Dashboard shows runs, traces, and findings with working accept and reject
+- [ ] Landing page matches `docs/DESIGN.md`; reduced motion works; Lighthouse performance 90 or higher
+- [ ] CI is green: lint, tests, pip-audit, pnpm audit, gitleaks
+- [ ] README has an architecture diagram, quickstart, and benchmark table
+- [ ] No secrets in the repo, logs, or chat
+- [ ] Total spend: $0
+
+## Cut order if time runs short
+
+Cursor chip, then route transitions and dashboard motion, then torn edge and bars, then zoom match cut. Never cut the benchmark, T1, T2, T5, or T7.
+
+## Directory tree
+
+```
+diffmate/
+├── CLAUDE.md, README.md, SECURITY.md, CONTRIBUTING.md, CHANGELOG.md
+├── Makefile, docker-compose.yml, .env.example, .gitignore, .gitleaks.toml
+├── .github/ (workflows/, PULL_REQUEST_TEMPLATE.md, ISSUE_TEMPLATE/)
+├── docs/ (DESIGN, RULES, BUILD_PROMPT, PRD, PLAN, architecture, api, threat-model, benchmark, testing, adr/, runbooks/)
+├── reports/ (README, phases/, weekly/)
+├── backend/ (pyproject.toml, alembic/, app/{api,core,db,github,queue,agent,checks}, tests/)
+├── benchmark/ (cases/, seeded/, runner.py, score.py, results/)
+├── frontend/ (package.json, src/{routes,scenes,motion,components,lib,styles}, tests/)
+└── infra/ (caddy/Caddyfile, deploy/)
+```
