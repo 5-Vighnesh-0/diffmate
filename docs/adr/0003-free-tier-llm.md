@@ -60,3 +60,9 @@ Consequences, decided with Vighnesh:
 - A Google 429 is not retried by the SDK; the run stops at once and is marked `paused_daily_cap`. Only 500/502/503/504 get one SDK retry.
 - At ~5 requests per review this is about 3 reviews per day. The Phase 4 benchmark (~300 requests) does not fit one week at this rate: options are put to the Phase 2 gate.
 
+## Update 2026-10-07 (afternoon): worker switched to Flash Lite
+
+`gemini-3.8-flash` stopped answering on the free tier (a trivial request got no reply in 150 s, twice; `thinking_level: minimal` is not supported, HTTP 400). Decided with Vighnesh: the worker uses **`gemini-3.5-flash-lite`** (500 RPD, 15 RPM; `.env`: cap 400, 12 per minute). `gemini-3.8-flash` stays as the stronger-model comparison on the Phase 4 holdout.
+
+First live review on Flash Lite (PR #2, commit 6ec3ba9): done in 23 s, 4 requests, est. $0.0036 at list price; found 2 of the 3 planted bugs (missed the empty-list division that 3.8 Flash caught). The benchmark will quantify this trade-off.
+

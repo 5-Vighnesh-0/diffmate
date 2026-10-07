@@ -49,7 +49,7 @@ pip-audit / pnpm audit (frontend, ESLint bundle) → No known vulnerabilities fo
 gitleaks (staged) → no leaks found
 ```
 
-- [ ] Live re-check of the post-review code: blocked until the Gemini daily quota resets (20/20 used). Both attempts reached Google and failed safely (nothing posted, run marked failed, retry path via close/reopen proven).
+- [x] Live re-check of the hardened code (2026-10-07 14:12 UTC, after Phase 3): PR #2 @6ec3ba9 on `gemini-3.5-flash-lite` → done in 23 s, 2 comments (line 9 off-by-one, line 16 shell injection), 4 requests, est. $0.0036. The earlier attempt on 3.8 Flash failed safely (Google did not answer in 90 s); close/reopen reclaimed the failed run.
 
 ## Problems and fixes
 
