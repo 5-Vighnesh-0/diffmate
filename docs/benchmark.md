@@ -1,38 +1,49 @@
 # Benchmark
 
-Status: method defined, no results yet. Every number below is a placeholder until the runner has been run.
+Status: design decided 2026-10-07 (Phase 4); no results yet.
 
 ## Goal
 
 Measure whether DiffMate finds real bugs with few false alarms and low cost, compared with a linter-only baseline.
 
-## Cases
+## Cases (decided 2026-10-07)
 
-- 60 to 100 pull requests.
-- Two sources: real PRs from open-source repos (with a bug later fixed or reverted), and seeded PRs where a known bug is injected into a clean change.
-- Each case has labels: file, line range, category, and whether it is a real bug.
-- Python and TypeScript only.
-- Case licensing: only use repos whose license allows it; record the source and license per case.
+60 offline cases in `benchmark/cases/NN-name.json`: 35 seeded bugs, 15 real bugs, 10 clean changes; about 35 Python and 25 TypeScript, from httpx, flask, click, requests, fastapi (Python) and zod, ky, hono, trpc, vitest (TypeScript). All MIT, BSD, or Apache; source, commit, and license per case, notices in `benchmark/cases/THIRD_PARTY.md`.
 
-Repos for real cases are not chosen yet (open question).
+```json
+{ "name": "...", "kind": "seeded|real|clean", "split": "dev|holdout",
+  "source": {"repo": "...", "commit": "...", "license": "...", "fix_commit": "real cases only"},
+  "title": "...", "body": "...",
+  "before": {"path": "content"}, "after": {"path": "content"},
+  "bugs": [{"file": "...", "line_start": 1, "line_end": 1, "category": "...", "why": "..."}] }
+```
+
+- **Seeded:** a real file at a pinned commit, plus a small realistic change with one planted bug.
+- **Real:** a real bug-fix commit undone (fixed code → buggy code); the label is the lines the fix touched.
+- **Clean:** a correct change; `bugs` is empty, so any finding is a false positive.
+- The diff is built from `before` → `after` with `difflib` (new files have no `before`). At most 3 files per case, 600 lines per file.
+- Lines in labels refer to the `after` version.
+
+Built by 5 subagents in parallel (2 repos each, shallow clones outside the project); every label then checked by Claude against the code; 5 random cases spot-checked by Vighnesh before freeze.
 
 ## Splits
 
-- Dev set: about 80%. Used for prompt and threshold tuning.
-- Holdout set: about 20%. Run once, at the end, untouched.
-- Freeze the case list and labels before any tuning (target: Oct 30).
+- Dev set: 48 cases. Holdout: 12, chosen with a fixed seed across the three kinds.
+- Freeze: one commit; the SHA-256 of the case set is stamped into every results file. Never tune on the holdout.
 
 ## Setups
 
 | Setup | Description |
 | --- | --- |
-| 1. Linter only | ruff and ESLint output turned into comments |
-| 2. Agent only | Agent loop with tools, no filtering |
-| 3. Agent plus filtering | Full DiffMate |
+| 1. Linter only | ruff and ESLint hints on changed lines, turned into findings; no LLM |
+| 2. Agent only | The agent's valid findings before filtering |
+| 3. Agent plus filtering | The same run after `filter_findings` (what DiffMate posts) |
 
-## Matching rule (proposed)
+One agent run per case feeds setups 2 and 3, so a full dev run costs about 250-300 Flash Lite requests.
 
-A posted finding counts as a true positive if it is in the labeled file, within 3 lines of the labeled range, and has a compatible category. The tolerance is a starting guess; settle it before freeze.
+## Matching rule (decided)
+
+A finding is a true positive if it is in a labeled file within ±3 lines of the labeled range. Category is ignored (models name the same bug differently). Each label is counted found at most once; extra findings on the same label are neither hits nor false positives.
 
 ## Metrics
 
@@ -41,8 +52,8 @@ A posted finding counts as a true positive if it is in the labeled file, within 
 | Precision | True positives / findings posted |
 | Recall | Labeled bugs found / labeled bugs |
 | False positives per PR | Posted findings that match no label / PRs |
-| Cost per PR | Mean token cost in USD |
-| Latency | p50 and p95 seconds from job start to comments posted |
+| Cost per PR | Mean estimated token cost at list price (actual cost is $0 on the free tier) |
+| Latency | p50 and p95 wall seconds per case, including free-tier request spacing |
 
 ## Starting targets (guesses, revise after first run)
 
@@ -50,22 +61,32 @@ Precision 70% or higher, recall 60% or higher, at most 1 false positive per PR, 
 
 ## Results
 
-| Setup | Precision | Recall | FP / PR | Cost / PR | p50 | p95 |
-| --- | --- | --- | --- | --- | --- | --- |
-| 1. Linter only | not run | not run | not run | not run | not run | not run |
-| 2. Agent only | not run | not run | not run | not run | not run | not run |
-| 3. Agent + filtering | not run | not run | not run | not run | not run | not run |
+Dev set, `gemini-3.5-flash-lite`:
 
-Holdout result: not run.
+<!-- bench:dev -->
+Not run yet.
+<!-- /bench:dev -->
+
+Holdout, `gemini-3.5-flash-lite` (run once):
+
+<!-- bench:holdout -->
+Not run yet.
+<!-- /bench:holdout -->
+
+Holdout, `gemini-3.8-flash` (bonus, if the free tier answers):
+
+<!-- bench:holdout-gemini-3.8-flash -->
+Not run yet.
+<!-- /bench:holdout-gemini-3.8-flash -->
 
 ## How to run
 
 ```bash
-make bench          # runs all three setups on the dev set
-make bench-holdout  # runs the holdout once; do not use for tuning
+make bench          # dev set, all three setups; resumable (re-run continues after a daily-cap stop)
+make bench-holdout  # holdout once, at the end; do not use for tuning
 ```
 
-Results are written to `benchmark/results/` with the commit SHA, model, and date.
+Each case result is appended to `benchmark/results/<split>-<model>-<case-set-sha>.jsonl` as it finishes; a re-run skips finished cases. The scorer prints the table and writes it here and into the README.
 
 ## Honesty rules
 

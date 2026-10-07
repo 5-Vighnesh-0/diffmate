@@ -1,0 +1,27 @@
+{
+  "name": "20-ky-timeout-helper-cleanup",
+  "kind": "seeded",
+  "split": "dev",
+  "source": {
+    "repo": "sindresorhus/ky",
+    "commit": "0d59458a0a58e1c3d7c6db0ab17ed5c7cd671e47",
+    "license": "MIT"
+  },
+  "title": "Simplify the timeout helper",
+  "body": "Small cleanup of the internal `timeout()` helper: use optional chaining for the abort controller, pass both handlers to `.then()`, and give the response promise an explicit `Response` type.",
+  "before": {
+    "source/utils/timeout.ts": "import {TimeoutError} from '../errors/TimeoutError.js';\nimport type {InternalOptions} from '../types/options.js';\n\nexport type TimeoutOptions = {\n\ttimeout: number;\n\tfetch: InternalOptions['fetch'];\n};\n\n// `Promise.race()` workaround (#91)\nexport default async function timeout(\n\trequest: Request,\n\tinit: RequestInit,\n\tabortController: AbortController | undefined,\n\toptions: TimeoutOptions,\n): Promise<Response> {\n\tlet timeoutId: ReturnType<typeof setTimeout> | undefined;\n\n\ttry {\n\t\treturn await new Promise((resolve, reject) => {\n\t\t\ttimeoutId = setTimeout(() => {\n\t\t\t\tif (abortController) {\n\t\t\t\t\tabortController.abort();\n\t\t\t\t}\n\n\t\t\t\treject(new TimeoutError(request));\n\t\t\t}, options.timeout);\n\n\t\t\t// Called unbound so a native `window.fetch` is not invoked with `options` as `this`, which throws \"Illegal invocation\" in browsers.\n\t\t\t// A synchronous throw rejects the promise, and `finally` still clears the timer so it cannot abort a later retry attempt.\n\t\t\tconst {fetch} = options;\n\t\t\tfetch(request, init).then(resolve).catch(reject);\n\t\t});\n\t} finally {\n\t\tclearTimeout(timeoutId);\n\t}\n}\n"
+  },
+  "after": {
+    "source/utils/timeout.ts": "import {TimeoutError} from '../errors/TimeoutError.js';\nimport type {InternalOptions} from '../types/options.js';\n\nexport type TimeoutOptions = {\n\ttimeout: number;\n\tfetch: InternalOptions['fetch'];\n};\n\n// `Promise.race()` workaround (#91)\nexport default async function timeout(\n\trequest: Request,\n\tinit: RequestInit,\n\tabortController: AbortController | undefined,\n\toptions: TimeoutOptions,\n): Promise<Response> {\n\tlet timeoutId: ReturnType<typeof setTimeout> | undefined;\n\n\ttry {\n\t\tconst responsePromise = new Promise<Response>((resolve, reject) => {\n\t\t\ttimeoutId = setTimeout(() => {\n\t\t\t\tabortController?.abort();\n\t\t\t\treject(new TimeoutError(request));\n\t\t\t}, options.timeout);\n\n\t\t\t// Called unbound so a native `window.fetch` is not invoked with `options` as `this`, which throws \"Illegal invocation\" in browsers.\n\t\t\t// A synchronous throw rejects the promise, and `finally` still clears the timer so it cannot abort a later retry attempt.\n\t\t\tconst {fetch} = options;\n\t\t\tfetch(request, init).then(resolve, reject);\n\t\t});\n\n\t\treturn responsePromise;\n\t} finally {\n\t\tclearTimeout(timeoutId);\n\t}\n}\n"
+  },
+  "bugs": [
+    {
+      "file": "source/utils/timeout.ts",
+      "line_start": 31,
+      "line_end": 31,
+      "category": "bug",
+      "why": "Returning the promise without await lets the finally block run immediately and clear the timer, so the request timeout never fires."
+    }
+  ]
+}

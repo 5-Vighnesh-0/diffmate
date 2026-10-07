@@ -1,0 +1,19 @@
+{
+  "name": "24-ky-delay-zero-fast-path",
+  "kind": "clean",
+  "split": "dev",
+  "source": {
+    "repo": "sindresorhus/ky",
+    "commit": "0d59458a0a58e1c3d7c6db0ab17ed5c7cd671e47",
+    "license": "MIT"
+  },
+  "title": "Resolve zero-length delays without a timer",
+  "body": "Check the abort signal up front and return immediately for delays of 0 ms (e.g. retries with `delay: () => 0`) instead of scheduling a timer. The abort listener is now registered after the timer is created.",
+  "before": {
+    "source/utils/delay.ts": "// https://github.com/sindresorhus/delay/tree/ab98ae8dfcb38e1593286c94d934e70d14a4e111\n\nimport {type InternalOptions} from '../types/options.js';\n\nexport type DelayOptions = {\n\tsignal?: InternalOptions['signal'];\n};\n\nexport default async function delay(\n\tms: number,\n\t{signal}: DelayOptions,\n): Promise<void> {\n\treturn new Promise((resolve, reject) => {\n\t\tif (signal) {\n\t\t\tsignal.throwIfAborted();\n\t\t\tsignal.addEventListener('abort', abortHandler, {once: true});\n\t\t}\n\n\t\tfunction abortHandler() {\n\t\t\tclearTimeout(timeoutId);\n\t\t\treject(signal!.reason as Error);\n\t\t}\n\n\t\tconst timeoutId = setTimeout(() => {\n\t\t\tsignal?.removeEventListener('abort', abortHandler);\n\t\t\tresolve();\n\t\t}, ms);\n\t});\n}\n"
+  },
+  "after": {
+    "source/utils/delay.ts": "// https://github.com/sindresorhus/delay/tree/ab98ae8dfcb38e1593286c94d934e70d14a4e111\n\nimport {type InternalOptions} from '../types/options.js';\n\nexport type DelayOptions = {\n\tsignal?: InternalOptions['signal'];\n};\n\nexport default async function delay(\n\tms: number,\n\t{signal}: DelayOptions,\n): Promise<void> {\n\tsignal?.throwIfAborted();\n\n\tif (ms <= 0) {\n\t\treturn;\n\t}\n\n\treturn new Promise((resolve, reject) => {\n\t\tconst abortHandler = () => {\n\t\t\tclearTimeout(timeoutId);\n\t\t\treject(signal!.reason as Error);\n\t\t};\n\n\t\tconst timeoutId = setTimeout(() => {\n\t\t\tsignal?.removeEventListener('abort', abortHandler);\n\t\t\tresolve();\n\t\t}, ms);\n\n\t\tsignal?.addEventListener('abort', abortHandler, {once: true});\n\t});\n}\n"
+  },
+  "bugs": []
+}

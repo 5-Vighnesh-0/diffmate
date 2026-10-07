@@ -63,7 +63,11 @@ make bench   # run the benchmark
 
 ## Benchmark results
 
-Filled in after the first run. See [docs/benchmark.md](docs/benchmark.md) for the method.
+Filled in by `make bench-score` from a committed results file. Method: [docs/benchmark.md](docs/benchmark.md).
+
+<!-- bench:dev -->
+Not run yet.
+<!-- /bench:dev -->
 
 | Setup | Precision | Recall | False positives per PR | Cost per PR | Latency p50 / p95 |
 | --- | --- | --- | --- | --- | --- |

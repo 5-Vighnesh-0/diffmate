@@ -224,15 +224,30 @@ Already done in Phases 1–2: confidence filter, dedupe, comment cap; core injec
 
 **Acceptance:** the security test suite and CI audits are green; the live injection suite passes.
 
-## Phase 4: Benchmark (week 4, Oct 28 to Nov 3)
+## Phase 4: Benchmark (started early, 2026-10-07)
 
-- [ ] Build 60 to 100 cases from the shortlist: real bug-fix PRs plus seeded bugs, with labels
-- [ ] Freeze the set (target Oct 30) and hold out about 20%
-- [ ] One-command runner and scorer (`make bench`), resumable across days for the free-tier limit
-- [ ] Run all three setups; record precision, recall, false positives per PR, estimated cost per PR, p50 and p95 latency
-- [ ] Write results into `docs/benchmark.md` and the README table
+**Decisions (Vighnesh, 2026-10-07):** 60 offline snapshot cases (35 seeded, 15 real bug fixes undone, 10 clean); 12 held out; match = same file within ±3 lines, category ignored; subagents build, Claude verifies every label, Vighnesh spot-checks 5 before freeze; main runs on Flash Lite, holdout on Flash Lite plus 3.8 Flash as a bonus if it answers. Design: `docs/benchmark.md`. No new dependencies ($0, stdlib `difflib`).
 
-**Acceptance:** results table committed, reproducible with one command.
+**Files:** `benchmark/corpus.py` (load + validate cases, build diffs, case-set SHA), `benchmark/score.py` (matching, metrics, table), `benchmark/runner.py` (`bench` mode, resume), `benchmark/cases/*.json`, `benchmark/cases/THIRD_PARTY.md`, tests in `backend/tests/unit/test_benchmark.py`.
+
+**Interfaces:**
+- `corpus.load_cases(split: str | None) -> list[dict]` validates every case (required keys, kind/split values, ≤3 files, ≤600 lines, labels inside `after`, clean ⇔ no bugs) and raises `ValueError` naming the case.
+- `corpus.pr_files(case) -> list[PrFile]` builds GitHub-style patches with `difflib.unified_diff(n=3)`, headers stripped; `case_set_sha(cases) -> str` (first 12 hex of SHA-256 over sorted names + contents).
+- `score.match(findings: list[dict], bugs: list[dict], tolerance=3) -> tuple[int, int]` returns (labels found, unmatched findings); `score.summarize(rows, setup) -> dict` returns precision, recall, fp_per_pr, cost_per_pr, p50, p95; `score.table(summaries) -> str` Markdown.
+- Result row (one JSON line per case): name, kind, split, model, seconds, llm_requests, tokens_in, tokens_out, cost_usd, stop_reason, `setups: {"linter": [...], "agent": [...], "filtered": [...]}` (finding dicts: file, line, category, explanation).
+
+**Tasks:**
+- [ ] 1. `corpus.py` + tests (diff of a modified file, added file, validation errors, SHA stable and changes when a case changes)
+- [ ] 2. `score.py` + tests (±3 hit, outside miss, one label found once, clean-case findings all FP, zero-findings precision shown as n/a, p50/p95)
+- [ ] 3. Runner `bench` mode + tests with a fake LLM: one agent run feeds setups 2 and 3; linter hints on changed lines become setup-1 findings; rows appended to `results/<split>-<model>-<sha>.jsonl`; finished cases skipped; stop cleanly (no row) on `daily_cap`/`rate_limited`
+- [ ] 4. Makefile `bench`, `bench-holdout`, `bench-score`
+- [ ] 5. Corpus: 5 subagents in parallel, 12 cases each (2 repos each), shallow clones in the scratchpad; THIRD_PARTY.md
+- [ ] 6. Verify every case (labels against the code, loader validation, linters run); assign the 12 holdout cases with seed 4; fix or drop bad ones
+- [ ] 7. Vighnesh spot-checks 5 random cases; freeze commit
+- [ ] 8. Dev run (resumes across days), score; holdout once on Flash Lite; 3.8 Flash holdout bonus if it answers
+- [ ] 9. Results into `docs/benchmark.md` and README; phase report and weekly log
+
+**Acceptance:** results table committed, reproducible with one command (`make bench`).
 
 ## Phase 5: Frontend (week 5, Nov 4 to Nov 10)
 
