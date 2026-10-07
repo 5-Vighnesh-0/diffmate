@@ -291,3 +291,16 @@ ruff → All checks passed! · pytest → 181 passed
 
 **Quota used:** 0 Gemini requests.
 - Spot-check: Vighnesh asked Claude to do it. Instead of re-reading its own labels, Claude ran each of the 5 random cases' buggy code: 54 (`TypeError` on NaN), 37 (lookup returns None for a missing or lowercase algorithm), 58 (unhandled rejection), 35 (headers `b`, `d` survive the delete loop), 30 (`COMPREPLY` not cleared). 5/5 confirmed. (decided by: Vighnesh, delegated)
+- Spot-check approved by Vighnesh ("yes"); set frozen and committed `4f45282`.
+- First dev run (48 cases, `gemini-3.5-flash-lite`, 316 requests, $0): written into `docs/benchmark.md` and `README.md` by `make bench-score`.
+
+```
+| 1. Linter only       | 17%  |  2% | 0.10 | $0.0000 |  0.0 s |  1.1 s |
+| 2. Agent only        | 100% | 27% | 0.00 | $0.0039 | 35.2 s | 40.3 s |
+| 3. Agent + filtering | 100% | 27% | 0.00 | $0.0039 | 35.2 s | 40.3 s |
+```
+
+- Finding: in 10 of 48 cases the agent used all 8 steps and never submitted (0 findings). Cause in `app/agent/loop.py`: the last step offers only `submit_findings` but does not force a tool call, so a model that asks for another tool is refused and the run ends empty. Fix proposed to Vighnesh, not applied.
+- Latency is dominated by free-tier spacing (5 s between requests, up to 8 requests).
+- Flash Lite requests used today: 337 of the 400 cap.
+- Fix approved by Vighnesh (re-run tomorrow; submit fix only, no other tuning). Test first (failed), then `app/agent/llm.py`: a step offering one tool sets `tool_choice: "any"`. 182 tests pass. Live check: one call offering only `submit_findings` with a prompt asking to read a file first → model called `submit_findings` (1 request, made outside the Redis counter); case 04 re-run once (7 requests, found the bug; not recorded as a result). Flash Lite today: ~345 of 400.

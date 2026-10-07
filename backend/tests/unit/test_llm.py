@@ -35,6 +35,19 @@ async def test_step_is_stateless_and_uses_the_configured_thinking_level():
     assert (step.tokens_in, step.tokens_out, step.calls[0].name) == (10, 2, "submit_findings")
 
 
+async def test_when_only_submit_is_offered_the_model_must_call_it():
+    # Dev benchmark 2026-10-07: on the last step Flash Lite often asked for another tool
+    # instead of submitting, so 10 of 48 runs ended with no answer (step_cap).
+    fake = FakeInteractions()
+    submit = {"type": "function", "name": "submit_findings"}
+
+    await llm_with(fake).step("sys", [], [submit], 512)
+    assert fake.kwargs["generation_config"]["tool_choice"] == "any"
+
+    await llm_with(fake).step("sys", [], [{"type": "function", "name": "read_file"}, submit], 512)
+    assert "tool_choice" not in fake.kwargs["generation_config"]
+
+
 async def test_a_slow_model_call_times_out_instead_of_hanging():
     with pytest.raises(TimeoutError):
         await llm_with(FakeInteractions(delay=5), timeout=0.1).step("sys", [], [], 512)

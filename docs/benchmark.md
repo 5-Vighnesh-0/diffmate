@@ -64,8 +64,18 @@ Precision 70% or higher, recall 60% or higher, at most 1 false positive per PR, 
 Dev set, `gemini-3.5-flash-lite`:
 
 <!-- bench:dev -->
-Not run yet.
+| Setup | Precision | Recall | FP / PR | Est. cost / PR | p50 | p95 |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1. Linter only | 17% | 2% | 0.10 | $0.0000 | 0.0 s | 1.1 s |
+| 2. Agent only | 100% | 27% | 0.00 | $0.0039 | 35.2 s | 40.3 s |
+| 3. Agent + filtering | 100% | 27% | 0.00 | $0.0039 | 35.2 s | 40.3 s |
+
+48 cases (dev), `gemini-3.5-flash-lite`, case set `2fe57354e31e`, 316 requests. Cost is estimated at list price; the free tier costs $0.
 <!-- /bench:dev -->
+
+### Tuning log (dev set only)
+
+1. **2026-10-07, run 1 (above):** in 10 of 48 cases the agent used all 8 steps and never submitted. The last step offered only `submit_findings` but did not require a call, so a model asking for another tool ended the run empty. **Fix:** a step offering a single tool sets Gemini `tool_choice: "any"` (`app/agent/llm.py`). Re-run on the dev set on the next quota day; run 1 stays in `benchmark/results/` for comparison.
 
 Holdout, `gemini-3.5-flash-lite` (run once):
 

@@ -50,16 +50,18 @@ class GeminiLLM:
     async def step(
         self, system: str, history: list, tools: list, max_output_tokens: int
     ) -> LlmStep:
+        config = {"max_output_tokens": max_output_tokens, "thinking_level": self.thinking_level}
+        if len(tools) == 1:
+            # The loop's last step offers only submit_findings: require the call, or the model
+            # may ask for another tool and the run ends with no answer.
+            config["tool_choice"] = "any"
         request = self.client.aio.interactions.create(
             model=self.model,
             system_instruction=system,
             input=history,
             tools=tools,
             store=False,  # Google keeps no copy of the conversation; we resend the history
-            generation_config={
-                "max_output_tokens": max_output_tokens,
-                "thinking_level": self.thinking_level,
-            },
+            generation_config=config,
         )
         try:
             interaction = await asyncio.wait_for(request, self.timeout_seconds)
