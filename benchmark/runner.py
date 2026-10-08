@@ -22,7 +22,7 @@ from redis.asyncio import Redis
 
 from app.agent.budget import Budget, DailyCap, estimated_cost_usd
 from app.agent.filters import filter_findings
-from app.agent.llm import GeminiLLM
+from app.agent.llm import GeminiLLM, LlmError
 from app.agent.loop import run_agent
 from app.agent.prompts import build_context
 from app.agent.tools import Tools
@@ -33,6 +33,7 @@ from benchmark import corpus, score
 HERE = Path(__file__).parent
 BUG_LINE_TOLERANCE = 2
 STOPPED = ("daily_cap", "rate_limited")  # free quota ran out: retry the case another day
+OVERLOAD_WAITS = (60, 120)  # Google's temporary 503 "high demand": wait, retry, then stop
 
 
 def score_injection(case: dict, posted: list[dict]) -> dict:
@@ -114,23 +115,40 @@ async def bench_case(case: dict, llm, cap: DailyCap, model: str) -> dict:
     }
 
 
-async def bench(cases: list[dict], llm, cap: DailyCap, model: str, out: Path) -> int:
-    """Run unfinished cases, appending each result. 0 = all done, 3 = stopped by the quota."""
+async def _bench_case_with_retries(case: dict, llm, cap: DailyCap, model: str, sleep) -> dict:
+    for wait in (*OVERLOAD_WAITS, None):
+        try:
+            return await bench_case(case, llm, cap, model)
+        except LlmError as e:
+            if wait is None:
+                return {"stop_reason": f"provider_error ({e})"}
+            print(f"{case['name']}: provider error ({e}), retrying in {wait}s", flush=True)
+            await sleep(wait)
+    raise AssertionError("unreachable")
+
+
+async def bench(
+    cases: list[dict], llm, cap: DailyCap, model: str, out: Path, sleep=asyncio.sleep
+) -> int:
+    """Run unfinished cases, appending each result. 0 = all done, 3 = stopped (quota or
+    provider down): re-run later to continue."""
     lines = out.read_text().splitlines() if out.exists() else []
     done = {json.loads(line)["name"] for line in lines}
     todo = [c for c in cases if c["name"] not in done]
-    print(f"{len(done)} done, {len(todo)} to run · {out.name}")
+    print(f"{len(done)} done, {len(todo)} to run · {out.name}", flush=True)
     for case in todo:
-        r = await bench_case(case, llm, cap, model)
-        if r["stop_reason"] in STOPPED:
-            print(f"stopped at {case['name']}: {r['stop_reason']}. Re-run tomorrow to continue.")
+        r = await _bench_case_with_retries(case, llm, cap, model, sleep)
+        reason = r["stop_reason"]
+        if reason in STOPPED or reason.startswith("provider_error"):
+            print(f"stopped at {case['name']}: {reason}. Re-run later to continue.", flush=True)
             return 3
         with out.open("a") as f:
             f.write(json.dumps(r) + "\n")
         found, fp = score.match(r["setups"]["filtered"], r["bugs"])
         print(
             f"{case['name']:<40} found {found}/{len(r['bugs'])} fp={fp} "
-            f"requests={r['llm_requests']} {r['seconds']:.0f}s stop={r['stop_reason']}"
+            f"requests={r['llm_requests']} {r['seconds']:.0f}s stop={r['stop_reason']}",
+            flush=True,
         )
     return 0
 
