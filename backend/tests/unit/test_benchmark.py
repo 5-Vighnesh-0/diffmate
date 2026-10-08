@@ -4,7 +4,7 @@ import pytest
 from benchmark import corpus, runner, score
 
 from app.agent.budget import DailyCap
-from app.agent.llm import LlmStep, ToolCall
+from app.agent.llm import LlmError, LlmStep, ToolCall
 
 
 def label(line, file="m.py", category="bug"):
@@ -258,3 +258,46 @@ def test_long_files_diff_minimally_like_github():
 
     assert len(corpus.changed_lines(c["before"][path], c["after"][path])) == 12
     assert "class TextChunker" not in corpus.patch(c["before"][path], c["after"][path])
+
+
+class FlakyLLM(FakeLLM):
+    """Fails the first `failures` calls like Google's temporary 503 overload."""
+
+    def __init__(self, script, failures):
+        super().__init__(script)
+        self.failures = failures
+
+    async def step(self, *args):
+        if self.failures:
+            self.failures -= 1
+            raise LlmError("InternalServerError")
+        return await super().step(*args)
+
+
+async def test_bench_waits_and_retries_a_case_when_google_is_overloaded(tmp_path):
+    waits = []
+
+    async def sleep(seconds):
+        waits.append(seconds)
+
+    out = tmp_path / "r.jsonl"
+    llm = FlakyLLM([submit(finding(2))], failures=2)
+
+    code = await runner.bench([case()], llm, DailyCap(Counter(), 10), "m", out, sleep=sleep)
+
+    assert code == 0
+    assert waits == [60, 120]
+    assert len(out.read_text().splitlines()) == 1
+
+
+async def test_bench_stops_cleanly_when_google_stays_down(tmp_path):
+    async def sleep(seconds):
+        pass
+
+    out = tmp_path / "r.jsonl"
+    llm = FlakyLLM([submit()], failures=99)
+
+    code = await runner.bench([case()], llm, DailyCap(Counter(), 10), "m", out, sleep=sleep)
+
+    assert code == 3  # same as the daily cap: re-run later to continue
+    assert not out.exists()

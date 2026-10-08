@@ -66,16 +66,18 @@ Dev set, `gemini-3.5-flash-lite`:
 <!-- bench:dev -->
 | Setup | Precision | Recall | FP / PR | Est. cost / PR | p50 | p95 |
 | --- | --- | --- | --- | --- | --- | --- |
-| 1. Linter only | 17% | 2% | 0.10 | $0.0000 | 0.0 s | 1.1 s |
-| 2. Agent only | 100% | 27% | 0.00 | $0.0039 | 35.2 s | 40.3 s |
-| 3. Agent + filtering | 100% | 27% | 0.00 | $0.0039 | 35.2 s | 40.3 s |
+| 1. Linter only | 17% | 2% | 0.10 | $0.0000 | 0.2 s | 2.4 s |
+| 2. Agent only | 100% | 55% | 0.00 | $0.0037 | 38.6 s | 140.8 s |
+| 3. Agent + filtering | 100% | 55% | 0.00 | $0.0037 | 38.6 s | 140.8 s |
 
-48 cases (dev), `gemini-3.5-flash-lite`, case set `2fe57354e31e`, 316 requests. Cost is estimated at list price; the free tier costs $0.
+48 cases (dev), `gemini-3.5-flash-lite`, case set `2fe57354e31e`, 307 requests. Cost is estimated at list price; the free tier costs $0.
 <!-- /bench:dev -->
 
 ### Tuning log (dev set only)
 
-1. **2026-10-07, run 1 (above):** in 10 of 48 cases the agent used all 8 steps and never submitted. The last step offered only `submit_findings` but did not require a call, so a model asking for another tool ended the run empty. **Fix:** a step offering a single tool sets Gemini `tool_choice: "any"` (`app/agent/llm.py`). Re-run on the dev set on the next quota day; run 1 stays in `benchmark/results/` for comparison.
+1. **2026-10-07, run 1** (`benchmark/results/run-1/`): linter-only precision 17%, recall 2%, 0.10 FP/PR; agent-only and agent+filter precision 100%, recall 27%, 0.00 FP/PR, $0.0039 est./PR, p50 35.2 s, p95 40.3 s; 316 requests. In 10 of 48 cases the agent used all 8 steps and never submitted. The last step offered only `submit_findings` but did not require a call, so a model asking for another tool ended the run empty. **Fix:** a step offering a single tool sets Gemini `tool_choice: "any"` (`app/agent/llm.py`). Run 1 stays in `benchmark/results/run-1/` for comparison.
+2. **2026-10-08, run 2** (the table above): with the forced submit, all 48 runs submitted (0 step-cap endings, was 10). Recall 27% → **55%**, precision stayed 100%, false positives stayed 0. 11 cases newly found, none lost. 307 requests. Caveats: one run each, and the model is not deterministic, so part of the change can be run-to-run variation. Latency is not comparable: Google returned 503 "high demand" errors all afternoon, and the runner's 60 s / 120 s retry waits are inside p95 (140.8 s).
+   Also changed: the runner retries a case after a provider error (60 s, then 120 s) and stops cleanly if it keeps failing, instead of crashing the run.
 
 Holdout, `gemini-3.5-flash-lite` (run once):
 
