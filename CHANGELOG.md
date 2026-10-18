@@ -14,10 +14,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: no
 
 ### Fixed
 
+- The agent's last step now requires a `submit_findings` call (Gemini `tool_choice: "any"`); before, 10 of 48 benchmark runs ended with no answer.
 - `/health` checks time out after 2 s; worker retries GitHub 403 rate limits and stops wasting the last retry; duplicate commits answer 200 "duplicate".
 
 ### Added
 
+- Phase 4: offline benchmark of 60 PR cases (35 seeded, 15 real, 10 clean; 12 held out) with a resumable runner and scorer (`make bench`, `make bench-holdout`, `make bench-score`). Flash Lite: precision 100%, recall 55% (dev) / 30% (holdout), 0 false positives per PR, estimated $0.003-0.004 per PR.
 - Phase 2: AI review agent (Gemini free tier) with four read-only tools, ruff/ESLint hints, step/token/daily/per-minute caps, findings filter, one inline review per commit, run history in Postgres (migrations 0001-0002).
 - Phase 1 backend: `/health`, `POST /webhooks/github` (HMAC check, replay protection, 1 MiB limit), arq queue with one job per commit, worker posting a test comment with retries, GitHub App JWT and repo-scoped installation tokens, JSON logs. 29 unit/security tests.
 - Docker compose stack, backend and frontend Dockerfiles, CI (ruff, pytest, pip-audit, pnpm build and audit, gitleaks), Makefile, `.env.example`, minimal frontend.

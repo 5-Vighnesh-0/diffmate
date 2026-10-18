@@ -82,8 +82,16 @@ Dev set, `gemini-3.5-flash-lite`:
 Holdout, `gemini-3.5-flash-lite` (run once):
 
 <!-- bench:holdout -->
-Not run yet.
+| Setup | Precision | Recall | FP / PR | Est. cost / PR | p50 | p95 |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1. Linter only | 67% | 20% | 0.08 | $0.0000 | 0.1 s | 1.4 s |
+| 2. Agent only | 100% | 30% | 0.00 | $0.0030 | 29.9 s | 40.0 s |
+| 3. Agent + filtering | 100% | 30% | 0.00 | $0.0030 | 29.9 s | 40.0 s |
+
+12 cases (holdout), `gemini-3.5-flash-lite`, case set `2fe57354e31e`, 65 requests. Cost is estimated at list price; the free tier costs $0.
 <!-- /bench:holdout -->
+
+**Reading the holdout:** run once on 2026-10-17, after all tuning. Recall 30% (3 of 10 bugs) is well below the dev set's 55%. Two reasons, and the numbers cannot separate them: the dev number benefits from being the set the fix was judged on, and 10 bugs is a small sample (one bug more or less moves recall by 10 points). Precision stayed 100% and both clean PRs got no comments, matching the dev set. The linter baseline's 2 of 10 is really 1: ruff rule B034 genuinely catches case 29 (`re.sub` flags passed as `count`), but case 08's "hit" is ESLint's unrelated `no-explicit-any` warning landing within the ±3-line window of the bug. That is a known weakness of a line-distance matching rule; it is left as is because changing the rule after seeing results would be tuning on the holdout. Treat ~30-55% as the honest recall range for Flash Lite on the free tier.
 
 Holdout, `gemini-3.8-flash` (bonus, if the free tier answers):
 
