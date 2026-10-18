@@ -1,0 +1,24 @@
+# Week 2 (from 2026-10-14)
+
+## Day 4: 2026-10-17 (Phase 4)
+
+**Done**
+- Holdout run once on `gemini-3.5-flash-lite` (12 cases, 65 requests, $0): precision 100%, recall 30% (3 of 10), 0 false positives; both clean PRs got no comments.
+- Checked the linter baseline's holdout hits against the data: 1 real (ruff B034, case 29), 1 coincidental (ESLint `no-explicit-any` within ±3 lines of case 08's bug). Corrected my first note in `docs/benchmark.md`, which had called both real. Matching rule left unchanged (changing it after seeing the holdout would be tuning on it).
+- Bonus run on `gemini-3.8-flash` (its free limits: 20/day, 4/min): case 03 found (Flash Lite missed it), then Google's 429 stopped it cleanly at case 05. Resumes on later days.
+- The throwaway test Postgres had gone after a Docker restart (19 integration tests skipped); restarted it, all 184 pass.
+- Phase 4 report written; plan and changelog updated.
+
+**Test output**
+```
+pytest → 184 passed · ruff → All checks passed!
+```
+
+**Files**
+- added: `benchmark/results/holdout-gemini-3.5-flash-lite-2fe57354e31e.jsonl`, `benchmark/results/holdout-gemini-3.8-flash-2fe57354e31e.jsonl`, `reports/phases/phase-4-benchmark.md`, `reports/weekly/week-2.md`
+- changed: `docs/benchmark.md`, `docs/PLAN.md`, `CHANGELOG.md`
+
+**Decisions**
+- Write the Phase 4 report now; add the 3.8 Flash bonus when it finishes (decided by: Vighnesh)
+
+**Quota:** Flash Lite 65 of 400; 3.8 Flash at its free limit for today.

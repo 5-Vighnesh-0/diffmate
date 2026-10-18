@@ -237,15 +237,15 @@ Already done in Phases 1–2: confidence filter, dedupe, comment cap; core injec
 - Result row (one JSON line per case): name, kind, split, model, seconds, llm_requests, tokens_in, tokens_out, cost_usd, stop_reason, `setups: {"linter": [...], "agent": [...], "filtered": [...]}` (finding dicts: file, line, category, explanation).
 
 **Tasks:**
-- [ ] 1. `corpus.py` + tests (diff of a modified file, added file, validation errors, SHA stable and changes when a case changes)
-- [ ] 2. `score.py` + tests (±3 hit, outside miss, one label found once, clean-case findings all FP, zero-findings precision shown as n/a, p50/p95)
-- [ ] 3. Runner `bench` mode + tests with a fake LLM: one agent run feeds setups 2 and 3; linter hints on changed lines become setup-1 findings; rows appended to `results/<split>-<model>-<sha>.jsonl`; finished cases skipped; stop cleanly (no row) on `daily_cap`/`rate_limited`
-- [ ] 4. Makefile `bench`, `bench-holdout`, `bench-score`
-- [ ] 5. Corpus: 5 subagents in parallel, 12 cases each (2 repos each), shallow clones in the scratchpad; THIRD_PARTY.md
-- [ ] 6. Verify every case (labels against the code, loader validation, linters run); assign the 12 holdout cases with seed 4; fix or drop bad ones
-- [ ] 7. Vighnesh spot-checks 5 random cases; freeze commit
-- [ ] 8. Dev run (resumes across days), score; holdout once on Flash Lite; 3.8 Flash holdout bonus if it answers
-- [ ] 9. Results into `docs/benchmark.md` and README; phase report and weekly log
+- [x] 1. `corpus.py` + tests (diff of a modified file, added file, validation errors, SHA stable and changes when a case changes)
+- [x] 2. `score.py` + tests (±3 hit, outside miss, one label found once, clean-case findings all FP, zero-findings precision shown as n/a, p50/p95)
+- [x] 3. Runner `bench` mode + tests with a fake LLM: one agent run feeds setups 2 and 3; linter hints on changed lines become setup-1 findings; rows appended to `results/<split>-<model>-<sha>.jsonl`; finished cases skipped; stop cleanly (no row) on `daily_cap`/`rate_limited`
+- [x] 4. Makefile `bench`, `bench-holdout`, `bench-score`
+- [x] 5. Corpus: 5 subagents in parallel, 12 cases each (2 repos each), shallow clones in the scratchpad; THIRD_PARTY.md
+- [x] 6. Verify every case (labels against the code, loader validation, linters run); assign the 12 holdout cases with seed 4; fix or drop bad ones
+- [x] 7. Vighnesh spot-checks 5 random cases; freeze commit
+- [x] 8. Dev run (resumes across days), score; holdout once on Flash Lite; 3.8 Flash holdout bonus if it answers (bonus: 1 of 12, continuing)
+- [x] 9. Results into `docs/benchmark.md` and README; phase report and weekly log
 
 **Acceptance:** results table committed, reproducible with one command (`make bench`).
 
