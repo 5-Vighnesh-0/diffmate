@@ -281,7 +281,7 @@ Already done in Phases 1–2: confidence filter, dedupe, comment cap; core injec
 - [x] 3. One image: frontend build stage in `backend/Dockerfile` (context = repo root), `start.sh` runs migrations, uvicorn and the worker; compose keeps separate services
 - [x] 4. `render.yaml` (web service + Key Value, free plans), `.env.example` updated
 - [x] 5. Runbook `docs/runbooks/deploy.md`: Vighnesh's steps (GitHub repo and push, Neon, Render blueprint, secrets, GitHub App URLs, uptime pinger, make the App public)
-- [ ] 6. Client IP on Render: test whether `X-Forwarded-For` can be spoofed after the first deploy; pick the header; threat model rows
+- [x] 6. Client IP on Render: test whether `X-Forwarded-For` can be spoofed after the first deploy; pick the header; threat model rows
 - [x] 7. Full-history gitleaks before the first push (23 commits, no leaks); push only with Vighnesh's approval
 - [ ] 8. Live checks on the hosted URL: webhook, review posted, login, dashboard, Lighthouse
 - [ ] 9. README with architecture diagram and benchmark table; resume bullets from real numbers; ADR 0004 (hosting)
