@@ -200,7 +200,8 @@ th {
   max-width: 36rem;
 }
 
-.steps-title {
+.steps-title,
+.intro h2.steps-title {
   font: 400 13px/1.4 var(--mono);
   text-transform: none;
   margin: 2.5rem 0 0.5rem;
@@ -281,6 +282,89 @@ th {
   margin-top: 3rem;
   border-top: 1px solid var(--line);
   padding-top: 1.5rem;
+}
+
+.summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin: 2rem 0;
+}
+
+.summary > div {
+  border-top: 2px solid var(--ink);
+  padding-top: 0.75rem;
+}
+
+.summary dd {
+  margin: 0;
+  font: 400 clamp(2.5rem, 6vw, 4.5rem) / 1 var(--display);
+}
+
+.summary dt {
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.review-cards {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1.5rem;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.review-card {
+  display: grid;
+  gap: 0.25rem;
+  padding: 1rem 1.25rem;
+  border: 2px solid var(--ink);
+  background: #fff;
+  text-decoration: none;
+  box-shadow: inset 6px 0 var(--ink);
+}
+
+.review-card:hover {
+  background: var(--paper);
+}
+
+.review-card.failed,
+.review-card.paused_daily_cap {
+  box-shadow: inset 6px 0 var(--signal-red);
+}
+
+.review-card.done {
+  box-shadow: inset 6px 0 var(--add-green);
+}
+
+.card-title {
+  font-weight: 600;
+  font-size: 19px;
+}
+
+.card-status {
+  color: var(--muted);
+}
+
+.words {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+}
+
+.words dt {
+  font-weight: 600;
+}
+
+.words dd {
+  margin: 0;
+  color: var(--muted);
+}
+
+@media (max-width: 640px) {
+  .summary {
+    grid-template-columns: 1fr;
+  }
 }
 
 .legend {

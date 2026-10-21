@@ -61,6 +61,8 @@ Vighnesh signed in with GitHub in Firefox and used the dashboard: all features w
 
 - Sign-in screen (Vighnesh: "what am I supposed to do?"): headline, purpose, button above the fold, three-step "What happens next", privacy note matching the real login (token never stored, never posts as you, 8 h), and a real recorded review as the example.
 
+- Plain language for beginners (Vighnesh): reviews list explains how a review happens, counts reviews and notes, shows each review as a sentence, and defines the three words people meet; a review explains each note without jargon and lists the AI's steps in words.
+
 ## Open for the gate
 
 - The App's public install link (`github.com/apps/<name>`) for the sign-in screen and the landing close.

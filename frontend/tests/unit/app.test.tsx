@@ -38,6 +38,31 @@ describe("dashboard", () => {
     expect(screen.getByText(demo.breaks.shell.comments[0].explanation)).toBeTruthy(); // the real example
   });
 
+  it("explains each review in plain words and how reviews happen", async () => {
+    fakeApi({
+      "GET /api/me": () => json(ME),
+      "GET /api/runs": () =>
+        json({
+          items: [
+            { id: 1, repo: "o/r", pr: 4, title: "Add calc", commit_sha: "abc1234", status: "done", error: null,
+              llm_requests: 5, est_cost_usd: 0.004, findings: 3, created_at: "2026-10-21T00:00:00Z", finished_at: null },
+            { id: 2, repo: "o/r", pr: 5, title: "Fix login", commit_sha: "def5678", status: "paused_daily_cap",
+              error: null, llm_requests: 0, est_cost_usd: 0, findings: 0, created_at: "2026-10-21T00:00:00Z",
+              finished_at: null },
+          ],
+          next_cursor: null,
+        }),
+    });
+
+    render(<Dashboard />);
+
+    expect(await screen.findByText("DiffMate left 3 notes.")).toBeTruthy();
+    expect(screen.getByText(/finishes the next time this change is updated/)).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "How a review happens" })).toBeTruthy();
+    expect(screen.getByText("reviews so far")).toBeTruthy();
+    expect(screen.getByText("Pull request")).toBeTruthy();
+  });
+
   it("shows AI text as plain text and sends votes with the CSRF token", async () => {
     const evil = '<img src=x onerror="alert(1)"> see https://evil.example';
     const fetch = fakeApi({
@@ -60,7 +85,7 @@ describe("dashboard", () => {
 
     expect(screen.getByText(/saved only in DiffMate, never on GitHub/)).toBeTruthy();
     expect(screen.getByText("You have rated 0 of 1.")).toBeTruthy();
-    expect(screen.getByRole("link", { name: "Open the pull request on GitHub" }).getAttribute("href")).toBe(
+    expect(screen.getByRole("link", { name: "See the change on GitHub" }).getAttribute("href")).toBe(
       "https://github.com/o/r/pull/2",
     );
 

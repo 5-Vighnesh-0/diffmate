@@ -6,12 +6,22 @@ import { Link } from "../lib/router";
 
 type Detail = Omit<Run, "findings"> & { findings: Finding[] };
 
-const DROPPED: Record<string, string> = {
-  posted: "Posted on GitHub",
-  dropped_not_in_diff: "Not posted: outside the changed lines",
-  dropped_low_confidence: "Not posted: low confidence",
-  dropped_duplicate: "Not posted: duplicate",
-  dropped_over_cap: "Not posted: over the 5-comment limit",
+// Plain-language labels for people new to code review.
+const WHERE: Record<string, string> = {
+  posted: "Sent to GitHub, where the person who made the change can see it.",
+  dropped_not_in_diff: "Not sent to GitHub: it is about code this change did not touch.",
+  dropped_low_confidence: "Not sent to GitHub: DiffMate was not sure enough.",
+  dropped_duplicate: "Not sent to GitHub: another note already says the same thing.",
+  dropped_over_cap: "Not sent to GitHub: DiffMate sends at most 5 notes per review.",
+};
+const KIND: Record<string, string> = { bug: "Mistake", security: "Security risk", missing_test: "Missing test" };
+const IMPORTANCE: Record<string, string> = { high: "serious", medium: "worth fixing", low: "minor" };
+const STEP: Record<string, string> = {
+  read_file: "Opened a file to read it",
+  search_repo: "Searched the project",
+  view_diff_hunk: "Looked closely at part of the change",
+  list_related_tests: "Looked for the project's tests",
+  submit_findings: "Wrote its notes",
 };
 
 export function RunDetail({ id }: { id: number }) {
@@ -50,6 +60,7 @@ function Review({ id, me }: { id: number; me: Me }) {
   if (!run) return <p>Loading review…</p>;
 
   const rated = run.findings.filter((f) => f.my_verdict).length;
+  const n = run.findings.length;
   const posted = run.findings.filter((f) => f.status === "posted").length;
   const prUrl = `https://github.com/${run.repo}/pull/${run.pr}`;
 
@@ -58,40 +69,42 @@ function Review({ id, me }: { id: number; me: Me }) {
       <p>
         <Link href="/dashboard">All reviews</Link>
       </p>
-      <h1 style={{ fontSize: "3rem" }}>
-        {run.repo} #{run.pr}
-      </h1>
+      <h1 style={{ fontSize: "3rem" }}>"{run.title}"</h1>
       <p>
-        {run.title}.{" "}
+        DiffMate's review of change #{run.pr} in {run.repo}, checked {new Date(run.created_at).toLocaleString()}.{" "}
         <a href={prUrl} target="_blank" rel="noreferrer">
-          Open the pull request on GitHub
+          See the change on GitHub
         </a>
       </p>
-      <p className="mono">
-        Commit {run.commit_sha.slice(0, 7)}, {run.llm_requests} AI requests, estimated ${run.est_cost_usd.toFixed(4)} at
-        list price (free tier: $0)
+      <p className="mono fine">
+        Version {run.commit_sha.slice(0, 7)} of the change. The AI was asked {run.llm_requests} times. Cost: $0 (free
+        tier; about ${run.est_cost_usd.toFixed(4)} at paid prices).
       </p>
       {run.error && <p className="notice" role="alert">{run.error}</p>}
 
       <section className="intro">
-        <h2>Comments</h2>
-        <p>
-          DiffMate found {run.findings.length} possible {run.findings.length === 1 ? "problem" : "problems"} in this
-          commit and posted {posted} of them as comments on the pull request. The rest were held back by its filters
-          (each says why), so they never reached GitHub.
-        </p>
-        {run.findings.length > 0 && (
+        <h2>What DiffMate noticed</h2>
+        {n === 0 ? (
+          <p>DiffMate read this change and found nothing worth a note. That is a good sign, though not a guarantee.</p>
+        ) : (
           <p>
-            <strong>Was each comment right?</strong> Choose <em>Useful</em> if it points at a real problem, or{" "}
-            <em>Not useful</em> if it is wrong or noise. Your answer is saved only in DiffMate, never on GitHub, and is
-            used to measure how often DiffMate is right. You can change it any time.
+            DiffMate noticed {n} possible {n === 1 ? "problem" : "problems"}. It sent {posted} to GitHub as{" "}
+            {posted === 1 ? "a note" : "notes"} on the exact line; {n - posted === 0 ? "none were" : `${n - posted} ${n - posted === 1 ? "was" : "were"}`}{" "}
+            held back, and each one says why.
+          </p>
+        )}
+        {n > 0 && (
+          <p>
+            <strong>Was each note right?</strong> Choose <em>Useful</em> if it points at a real problem, or{" "}
+            <em>Not useful</em> if it is wrong or unimportant. Your answer is saved only in DiffMate, never on GitHub, and
+            is used to measure how often DiffMate is right. You can change it any time.
           </p>
         )}
       </section>
       {voteError && <p className="notice" role="alert">{voteError}</p>}
       {run.findings.length > 0 && (
         <p className="mono" aria-live="polite">
-          You have rated {rated} of {run.findings.length}.
+          You have rated {rated} of {n}.
         </p>
       )}
       {run.findings.map((f, i) => (
@@ -102,10 +115,11 @@ function Review({ id, me }: { id: number; me: Me }) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 + i * 0.06, duration: 0.25 }}
         >
-          <p className="meta mono">
-            {f.file}:{f.line}, {f.category}, {f.severity} severity, {Math.round(f.confidence * 100)}% confident.{" "}
-            {DROPPED[f.status] ?? f.status}
+          <p className="meta">
+            <strong>{KIND[f.category] ?? f.category}</strong>, {IMPORTANCE[f.severity] ?? f.severity}. In{" "}
+            <code>{f.file}</code>, line {f.line}. DiffMate is {Math.round(f.confidence * 100)}% sure.
           </p>
+          <p className="fine">{WHERE[f.status] ?? f.status}</p>
           {/* LLM text: React renders it as text, never HTML. */}
           <p>{f.explanation}</p>
           <div className="actions" role="group" aria-label="Was this comment useful?">
@@ -144,13 +158,13 @@ function Review({ id, me }: { id: number; me: Me }) {
       ))}
 
       <section className="intro">
-        <h2>What the AI did</h2>
-        <p>Every step DiffMate took before commenting, in order. It can only read your code, never change it.</p>
+        <h2>How DiffMate checked it</h2>
+        <p>Every step it took, in order. It can only read code, never change it.</p>
       </section>
       {trace.length === 0 ? (
         <p>No steps recorded.</p>
       ) : (
-        <ol className="mono" style={{ paddingLeft: "1.5rem" }}>
+        <ol style={{ paddingLeft: "1.5rem" }}>
           {trace.map((s, i) => (
             <motion.li
               key={s.step_no + s.summary}
@@ -159,8 +173,10 @@ function Review({ id, me }: { id: number; me: Me }) {
               transition={{ delay: 0.2 + i * 0.04 }}
               style={{ marginBottom: "0.5rem", overflowWrap: "anywhere" }}
             >
-              {s.summary}
+              <span className="plain">{STEP[s.tool] ?? s.tool}</span>
               {s.duration_ms > 0 && ` (${(s.duration_ms / 1000).toFixed(1)} s)`}
+              <br />
+              <span className="fine">{s.summary}</span>
             </motion.li>
           ))}
         </ol>
@@ -169,8 +185,8 @@ function Review({ id, me }: { id: number; me: Me }) {
       <section className="intro next">
         <h2>What next?</h2>
         <p>
-          Fix the code on GitHub and push. DiffMate reviews every new commit automatically, and the new review appears
-          in <Link href="/dashboard">your reviews</Link>.
+          If a note is right, fix that line and update the change on GitHub. DiffMate checks every new version
+          automatically, and the new review appears in <Link href="/dashboard">your reviews</Link>.
         </p>
       </section>
     </motion.div>
