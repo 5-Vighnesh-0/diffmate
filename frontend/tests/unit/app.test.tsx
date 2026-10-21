@@ -33,6 +33,9 @@ describe("dashboard", () => {
 
     const link = await screen.findByRole("link", { name: "Sign in with GitHub" });
     expect(link.getAttribute("href")).toBe(LOGIN_URL);
+    expect(screen.getByRole("heading", { name: "What happens next" })).toBeTruthy();
+    expect(screen.getByText(/never stores your GitHub token/)).toBeTruthy();
+    expect(screen.getByText(demo.breaks.shell.comments[0].explanation)).toBeTruthy(); // the real example
   });
 
   it("shows AI text as plain text and sends votes with the CSRF token", async () => {
