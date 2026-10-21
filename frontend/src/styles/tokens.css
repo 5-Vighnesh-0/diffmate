@@ -87,6 +87,24 @@ pre,
   cursor: default;
 }
 
+/* Page change: fade in. Ends at transform none, so sticky pinning works after 0.25s. */
+.page-in {
+  animation: page-in 0.25s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-in {
+    animation: none;
+  }
+}
+
 /* Dashboard: calm and fast. */
 .app-bar {
   display: flex;
@@ -162,6 +180,53 @@ th {
 .button[aria-pressed="true"] {
   background: var(--ink);
   color: var(--paper);
+}
+
+.intro {
+  max-width: 44rem;
+  margin: 2rem 0 1rem;
+}
+
+.intro h1 {
+  font-size: 3rem;
+  margin-bottom: 0.75rem;
+}
+
+.intro h2 {
+  font-size: 2rem;
+  margin-bottom: 0.75rem;
+}
+
+.intro.next {
+  margin-top: 3rem;
+  border-top: 1px solid var(--line);
+  padding-top: 1.5rem;
+}
+
+.legend {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: 0.75rem 1.5rem;
+  margin: 2rem 0 0;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.legend dt {
+  font: 400 12px/1.4 var(--mono);
+  color: var(--ink);
+}
+
+.legend dd {
+  margin: 0;
+}
+
+.finding .actions {
+  align-items: center;
+}
+
+.saved {
+  color: var(--muted);
 }
 
 .notice {

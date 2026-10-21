@@ -55,7 +55,16 @@ describe("dashboard", () => {
     expect(await screen.findByText(evil)).toBeTruthy();
     expect(container.querySelector("img")).toBeNull();
 
+    expect(screen.getByText(/saved only in DiffMate, never on GitHub/)).toBeTruthy();
+    expect(screen.getByText("You have rated 0 of 1.")).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Open the pull request on GitHub" }).getAttribute("href")).toBe(
+      "https://github.com/o/r/pull/2",
+    );
+
     fireEvent.click(screen.getByRole("button", { name: "Useful" }));
+
+    expect(await screen.findByText("Saved: useful")).toBeTruthy();
+    expect(screen.getByText("You have rated 1 of 1.")).toBeTruthy();
 
     await waitFor(() => expect(screen.getByRole("button", { name: "Useful" }).getAttribute("aria-pressed")).toBe("true"));
     const [, init] = fetch.mock.calls.find(([url]) => String(url).endsWith("/feedback"))!;

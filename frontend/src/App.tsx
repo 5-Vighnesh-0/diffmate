@@ -19,10 +19,20 @@ function Page({ path }: { path: string }) {
   );
 }
 
+// Page changes: a CSS fade-in keyed by path (DESIGN.md T12). No exit animation, so a new
+// page never waits on the old one.
+function Routes({ path }: { path: string }) {
+  return (
+    <div key={path} className="page-in">
+      <Page path={path} />
+    </div>
+  );
+}
+
 export default function App() {
   return (
     <MotionConfig reducedMotion="user">
-      <Page path={usePath()} />
+      <Routes path={usePath()} />
     </MotionConfig>
   );
 }
