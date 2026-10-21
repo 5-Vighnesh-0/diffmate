@@ -1,0 +1,95 @@
+{
+  "model": "gemini-3.5-flash-lite",
+  "recorded": "2026-10-21",
+  "path": "stats.py",
+  "clean": "import subprocess\n\n\ndef average(values):\n    if not values:\n        return 0.0\n    total = 0\n    for v in values:\n        total += v\n    return total / len(values)\n\n\ndef last_n(items, n):\n    return items[len(items) - n :]\n\n\ndef archive(path):\n    subprocess.run([\"tar\", \"-czf\", path + \".tgz\", path], check=True)\n",
+  "peak": {
+    "after": "import subprocess\n\n\ndef average(values):\n    if not values:\n        return 0.0\n    total = 0\n    for i in range(1, len(values)):\n        total += values[i]\n    return total / len(values)\n\n\ndef last_n(items, n):\n    return items[len(items) - n :]\n\n\ndef archive(path):\n    subprocess.run([\"tar\", \"-czf\", path + \".tgz\", path], check=True)\n",
+    "comments": [
+      {
+        "file": "stats.py",
+        "line": 8,
+        "category": "bug",
+        "severity": "high",
+        "confidence": 1.0,
+        "explanation": "The average function starts summing from index 1 instead of index 0, skipping the first element and resulting in an incorrect calculation."
+      }
+    ],
+    "trace": [
+      "read_file(path=\"stats.py\", end_line=200, start_line=1)",
+      "list_related_tests(path=\"stats.py\")",
+      "submit_findings(1 findings)"
+    ],
+    "stop_reason": "submitted",
+    "llm_requests": 3,
+    "seconds": 11.9
+  },
+  "breaks": {
+    "loop": {
+      "after": "import subprocess\n\n\ndef average(values):\n    if not values:\n        return 0.0\n    total = 0\n    for i in range(1, len(values)):\n        total += values[i]\n    return total / len(values)\n\n\ndef last_n(items, n):\n    return items[len(items) - n :]\n\n\ndef archive(path):\n    subprocess.run([\"tar\", \"-czf\", path + \".tgz\", path], check=True)\n",
+      "comments": [
+        {
+          "file": "stats.py",
+          "line": 8,
+          "category": "bug",
+          "severity": "high",
+          "confidence": 1.0,
+          "explanation": "The average function loops starting from index 1 instead of 0, omitting the first element from the sum while still dividing by the total length of values."
+        }
+      ],
+      "trace": [
+        "view_diff_hunk(path=\"stats.py\")",
+        "read_file(path=\"stats.py\", start_line=1, end_line=50)",
+        "list_related_tests(path=\"stats.py\")",
+        "search_repo(pattern=\"average\")",
+        "search_repo(pattern=\"stats\")",
+        "submit_findings(1 findings)"
+      ],
+      "stop_reason": "submitted",
+      "llm_requests": 6,
+      "seconds": 29.7
+    },
+    "slice": {
+      "after": "import subprocess\n\n\ndef average(values):\n    if not values:\n        return 0.0\n    total = 0\n    for v in values:\n        total += v\n    return total / len(values)\n\n\ndef last_n(items, n):\n    return items[-n:]\n\n\ndef archive(path):\n    subprocess.run([\"tar\", \"-czf\", path + \".tgz\", path], check=True)\n",
+      "comments": [
+        {
+          "file": "stats.py",
+          "line": 14,
+          "category": "bug",
+          "severity": "medium",
+          "confidence": 0.95,
+          "explanation": "When n is 0, -0 evaluates to 0, causing items[-n:] to slice from index 0 and return the entire list instead of an empty list."
+        }
+      ],
+      "trace": [
+        "read_file(end_line=50, path=\"stats.py\", start_line=1)",
+        "search_repo(pattern=\"last_n\")",
+        "list_related_tests(path=\"stats.py\")",
+        "submit_findings(1 findings)"
+      ],
+      "stop_reason": "submitted",
+      "llm_requests": 4,
+      "seconds": 20.9
+    },
+    "shell": {
+      "after": "import subprocess\n\n\ndef average(values):\n    if not values:\n        return 0.0\n    total = 0\n    for v in values:\n        total += v\n    return total / len(values)\n\n\ndef last_n(items, n):\n    return items[len(items) - n :]\n\n\ndef archive(path):\n    subprocess.run(f\"tar -czf {path}.tgz {path}\", shell=True)\n",
+      "comments": [
+        {
+          "file": "stats.py",
+          "line": 18,
+          "category": "security",
+          "severity": "high",
+          "confidence": 0.99,
+          "explanation": "Using shell=True with unvalidated path input allows arbitrary command injection via malicious path names."
+        }
+      ],
+      "trace": [
+        "read_file(path=\"stats.py\", end_line=30, start_line=1)",
+        "submit_findings(1 findings)"
+      ],
+      "stop_reason": "submitted",
+      "llm_requests": 2,
+      "seconds": 8.5
+    }
+  }
+}

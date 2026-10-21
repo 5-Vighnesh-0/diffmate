@@ -11,15 +11,23 @@ Dashboard first; landing with only DESIGN.md's never-cut effects; History API ro
 
 - Dashboard (`/dashboard`): sign-in prompt when signed out; reviews list with status, comment count, AI requests, "Show older"; free-quota line; sign out (CSRF).
 - Review detail (`/dashboard/runs/:id`): every finding with file, line, severity, confidence and whether it was posted or why not; AI text rendered as plain text; Useful / Not useful votes with the CSRF token, visible error if a vote fails; the agent's steps.
-- Landing (`/`): hero diff card that tilts upright on scroll (T5); five-step pinned pipeline story with hard-edged panel wipes (T1, T2); results counted up from the real benchmark (T7) and a three-setup table; closing call to action.
+- Landing (`/`), first version: tilting hero card (T5), pinned five-step story (T1, T2), counted results (T7). Replaced the same day (below).
 - Reduced motion or screens under 640px: one live media query switches to a still layout (scenes stacked, hero card under the headline).
 - `make bench-score` also writes `frontend/src/lib/benchmark.json`; the landing imports it.
 - Packages (all pre-approved in PLAN): motion, @fontsource/anton, @fontsource/inter, @fontsource/jetbrains-mono, vitest, jsdom, @testing-library/react. `pnpm audit`: no known vulnerabilities.
 
+## Landing rebuilt with scroll-craft (Vighnesh, 2026-10-21)
+
+Vighnesh asked to use scroll-craft. Pushback accepted: its paid image generation is off ($0 rule), and the dashboard keeps its calm design. Interview answers: loud, brutalist; peak = watching it catch the bug; signature = scroll writes the code (peak) plus plant a bug (close); calm-intense-calm; distinct scenes; push DESIGN.md harder; real recorded results.
+
+- Grammar: live surface. Acts: PR page waiting (calm) > pinned 400vh act where scroll types `stats.py`, the AI's real steps appear, a red bar slams across line 8 and the real comment lands (peak) > real numbers at display size > plant a bug (radio input, four real recorded reviews, labelled "Recorded 2026-10-21 … Not live") > one quiet line.
+- `benchmark/demo.py` records the reviews (15 free Flash Lite requests; all four caught their bug) into `frontend/src/lib/demo.json`; it refuses to write if any run did not finish.
+- Verified in the built-in browser at 1280x800 and 375px; Lighthouse 96 / 100. Feel check matches the brief. scroll-craft's own screenshot harness not run (needs playwright-core).
+
 ## Checks so far
 
 ```
-make test   → backend 185 passed · frontend 4 passed
+make test   → backend 185 passed · frontend 5 passed
 pnpm build  → built, no type errors
 ```
 

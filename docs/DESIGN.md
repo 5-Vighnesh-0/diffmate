@@ -89,6 +89,8 @@ Principles:
 
 ## 5. Page structure and scroll plan
 
+> **Superseded for the landing page (2026-10-21).** Vighnesh chose scroll-craft's method: the landing is now a brutalist *live surface* (the page behaves like the product). Structure, feeling curve and signature move: `scrollcraft/builds/diffmate-landing/BRIEF.md`. Tokens (§3), motion rules (§4) and accessibility (§7) still apply. The scenes and transitions below are kept as the original plan.
+
 | # | Section | Scroll length | Transitions |
 | --- | --- | --- | --- |
 | 1 | Hero | 150vh | T5 tilt-to-upright, T6 line reveal |

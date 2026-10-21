@@ -19,6 +19,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: no
 
 ### Added
 
+- Landing rebuilt with scroll-craft's method: a brutalist live surface where scroll types a real pull request and DiffMate's real recorded review lands on the bug, real benchmark numbers, and a "plant a bug" input showing four real recorded reviews (`benchmark/demo.py`).
 - Phase 5: dashboard (reviews list, review detail with findings, Useful / Not useful votes, agent trace) and landing page (tilting hero diff card, pinned five-step pipeline story, results from the real benchmark). Reduced motion and phones get a stacked, still layout. History API routing, self-hosted fonts, Vitest tests in `make test` and CI.
 - Phase 4: offline benchmark of 60 PR cases (35 seeded, 15 real, 10 clean; 12 held out) with a resumable runner and scorer (`make bench`, `make bench-holdout`, `make bench-score`). Flash Lite: precision 100%, recall 55% (dev) / 30% (holdout), 0 false positives per PR, estimated $0.003-0.004 per PR.
 - Phase 2: AI review agent (Gemini free tier) with four read-only tools, ruff/ESLint hints, step/token/daily/per-minute caps, findings filter, one inline review per commit, run history in Postgres (migrations 0001-0002).
