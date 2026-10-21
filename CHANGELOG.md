@@ -2,7 +2,9 @@
 
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: not decided yet.
 
-## [Unreleased]
+## [1.0.0] - 2026-10-21
+
+First release: all six phases approved.
 
 ### Security
 

@@ -1,7 +1,7 @@
 # Phase 6: Ship
 
 **Dates:** 2026-10-21
-**Status:** awaiting approval
+**Status:** approved (2026-10-21) by Vighnesh. DiffMate v1 shipped.
 
 ## Decisions (Vighnesh, 2026-10-21)
 
