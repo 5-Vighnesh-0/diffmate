@@ -108,10 +108,10 @@ def serve_frontend(app: FastAPI, dist: Path) -> None:
     async def page() -> FileResponse:
         return FileResponse(index, media_type="text/html")
 
-    # Only the frontend's own routes; anything else stays a JSON 404.
-    app.add_api_route("/", page, include_in_schema=False)
-    app.add_api_route("/dashboard", page, include_in_schema=False)
-    app.add_api_route("/dashboard/runs/{run_id:int}", page, include_in_schema=False)
+    # Only the frontend's own routes; anything else stays a JSON 404. HEAD too: uptime monitors
+    # check with HEAD by default, and a 405 there reads as "site down".
+    for path in ("/", "/dashboard", "/dashboard/runs/{run_id:int}"):
+        app.add_api_route(path, page, methods=["GET", "HEAD"], include_in_schema=False)
 
 
 app = create_app()
