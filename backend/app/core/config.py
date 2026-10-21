@@ -1,4 +1,5 @@
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -15,6 +16,7 @@ class Settings(BaseSettings):
     github_webhook_secret: SecretStr = SecretStr("")
     github_app_id: int | None = None
     github_app_private_key_path: str | None = None
+    github_app_private_key: SecretStr = SecretStr("")  # hosted: the PEM itself, from a secret
 
     # LLM (ADR 0003). The key comes from a project with no billing account; cap 0 = no LLM calls.
     llm_provider: str = "gemini"
@@ -39,6 +41,14 @@ class Settings(BaseSettings):
 
     webhook_max_body_bytes: int = 1_048_576  # 1 MiB; PR event payloads are far smaller
     delivery_ttl_seconds: int = 7 * 24 * 3600  # how long a delivery ID counts as seen
+
+    def github_app_key(self) -> str:
+        """The App's private key: from the secret setting (hosting) or the key file (laptop)."""
+        if key := self.github_app_private_key.get_secret_value():
+            return key.replace("\\n", "\n")  # dashboards often store a PEM on one line
+        if self.github_app_private_key_path:
+            return Path(self.github_app_private_key_path).read_text()
+        raise RuntimeError("Set GITHUB_APP_PRIVATE_KEY or GITHUB_APP_PRIVATE_KEY_PATH")
 
 
 @lru_cache

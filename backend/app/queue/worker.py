@@ -227,9 +227,9 @@ async def review_pr(ctx, repo: str, pr: int, sha: str, installation_id: int) -> 
 async def startup(ctx) -> None:
     setup_logging()
     settings = get_settings()
-    if settings.github_app_id is None or not settings.github_app_private_key_path:
-        raise RuntimeError("GITHUB_APP_ID and GITHUB_APP_PRIVATE_KEY_PATH must be set")
-    key = Path(settings.github_app_private_key_path).read_text()
+    if settings.github_app_id is None:
+        raise RuntimeError("GITHUB_APP_ID must be set")
+    key = settings.github_app_key()
     app_id = settings.github_app_id
     ctx["settings"] = settings
     ctx["http"] = github_http()
