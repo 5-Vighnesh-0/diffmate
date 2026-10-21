@@ -72,3 +72,7 @@ Four device families, none repeated in a row. Total length about 6 viewport-heig
 - **Verified (built-in browser screenshots):** 1280x800 at review progress 0.3, 0.6, 0.95; numbers; plant-a-bug with the shell choice; 375px phone (still layout, whole review visible, no sideways scroll). Fixed during verification: the comment showed faintly before its moment; the longest code line was cut off; the three giant numbers collided; "Try it" wrapped in the phone bar.
 - **Lighthouse 12 (production build):** performance 96, accessibility 100 (LCP 2.3 s, TBT 50 ms, CLS 0.003).
 - **Not verified:** scroll-craft's own harness (`shoot.mjs`: dead-scroll and composited-contrast checks) was not run, because it needs `playwright-core` installed; a real phone.
+
+## Change after user testing (2026-10-21)
+
+Vighnesh saw only the hook ("where is the data") because the full-screen hook left the first screen mostly empty. Fixes: the hook is no longer full-screen, so the code surface starts on the first screen; line 1 is pre-written; the status line says "scroll down: the code writes itself, then DiffMate reviews it". This breaks the method's no-scroll-cue rule on purpose: a real visitor got lost, and the audience includes beginners.

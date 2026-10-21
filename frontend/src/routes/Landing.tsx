@@ -105,10 +105,17 @@ function ReviewPinned() {
   useMotionValueEvent(p, "change", setProgress);
   const slam = useTransform(p, SLAM, [0, 1]);
 
-  const chars = Math.round(Math.min(progress / TYPE_END, 1) * totalChars);
+  // Start with line 1 written so the box never looks empty.
+  const chars = Math.max(lines[0].length, Math.round(Math.min(progress / TYPE_END, 1) * totalChars));
   const stepsShown = TRACE.filter((at) => progress >= at).length;
   const status =
-    progress < TYPE_END ? "being written" : progress < SLAM[0] ? "DiffMate is reviewing" : "1 comment from DiffMate";
+    progress < 0.03
+      ? "scroll down: the code writes itself, then DiffMate reviews it"
+      : progress < TYPE_END
+        ? "being written"
+        : progress < SLAM[0]
+          ? "DiffMate is reviewing"
+          : "1 comment from DiffMate";
   const landed = progress >= LAND;
 
   return (

@@ -434,11 +434,12 @@ th {
   border-bottom: 2px solid var(--ink);
 }
 
+/* No full-screen hook: the code box must start on the first screen, or the page looks empty. */
 .hook {
-  min-height: calc(100vh - 3rem);
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  gap: 2.5rem;
+  padding-bottom: 2rem;
 }
 
 .hook h1 {
