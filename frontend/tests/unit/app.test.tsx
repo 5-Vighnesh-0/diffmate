@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { LOGIN_URL } from "../../src/lib/api";
+import demo from "../../src/lib/demo.json";
 import { Dashboard } from "../../src/routes/Dashboard";
 import { Landing } from "../../src/routes/Landing";
 import { RunDetail } from "../../src/routes/RunDetail";
@@ -66,20 +67,30 @@ describe("dashboard", () => {
 });
 
 describe("landing", () => {
-  it("stacks every pipeline scene in normal flow when the visitor prefers reduced motion", () => {
+  it("shows the whole recorded review, still, when the visitor prefers reduced motion", () => {
     stubBrowser({ reduceMotion: true });
 
     render(<Landing />);
 
-    expect(screen.getByTestId("pipeline-stacked")).toBeTruthy();
-    expect(screen.queryByTestId("pipeline-pinned")).toBeNull();
-    for (const step of ["A pull request opens", "A comment lands on the line"])
-      expect(screen.getByRole("heading", { name: step })).toBeTruthy();
+    expect(screen.getByTestId("review-still")).toBeTruthy();
+    expect(screen.queryByTestId("review-pinned")).toBeNull();
+    expect(screen.getByText(demo.peak.comments[0].explanation)).toBeTruthy();
+    const bug = document.querySelector(".bug-line");
+    expect(bug?.classList.contains("hit")).toBe(true);
   });
 
-  it("pins the pipeline story when motion is allowed", () => {
+  it("pins the review so scroll can write it when motion is allowed", () => {
     render(<Landing />);
 
-    expect(screen.getByTestId("pipeline-pinned")).toBeTruthy();
+    expect(screen.getByTestId("review-pinned")).toBeTruthy();
+  });
+
+  it("shows what DiffMate actually said about the bug the visitor plants", () => {
+    render(<Landing />);
+
+    fireEvent.click(screen.getByRole("radio", { name: "Run tar through the shell" }));
+
+    expect(screen.getByText(demo.breaks.shell.comments[0].explanation)).toBeTruthy();
+    expect(screen.getByText(/Not live\./)).toBeTruthy();
   });
 });

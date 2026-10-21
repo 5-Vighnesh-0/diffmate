@@ -255,11 +255,12 @@ Already done in Phases 1–2: confidence filter, dedupe, comment cap; core injec
 
 - [x] Design tokens and fonts from `docs/DESIGN.md`
 - [x] Dashboard: runs list (keyset "Show older"), run detail with findings (plain text), accept/reject with CSRF, agent trace
-- [x] Landing: hero (T5), pinned pipeline story with 5 scenes (T1, T2), results from real benchmark numbers (T7), closing CTA
+- [x] Landing, first version: hero (T5), pinned pipeline story (T1, T2), results (T7), closing CTA
+- [x] Landing rebuilt with scroll-craft's method (Vighnesh, 2026-10-21): live surface, brutalist; scroll types a real PR and DiffMate's real recorded review lands on the bug; real numbers; "plant a bug" with four real recorded reviews (`benchmark/demo.py`, 15 free requests). Brief: `scrollcraft/builds/diffmate-landing/BRIEF.md`
 - [x] Reduced motion and phones: scenes stacked in normal flow, hero card below the headline
 - [x] Tests: signed-out prompt, LLM text stays text, votes send the CSRF token, reduced-motion layout; in `make test` and CI
 - [ ] Live check: sign in and vote on a real review (Vighnesh, in Firefox)
-- [x] Lighthouse performance 90 or higher (landing 95, dashboard 97; accessibility 100 both)
+- [x] Lighthouse performance 90 or higher (rebuilt landing 96, dashboard 97; accessibility 100 both)
 - Cut (DESIGN.md §8 order): T3 zoom match cut, T4 barcode bars, T6 line reveal, T9 row entry, T10 theme flip, T11 torn edge, T12 route transitions, T14 cursor chip, the "Findings on a real diff" section (covered by pipeline step 4)
 
 **Acceptance:** Lighthouse performance 90 or higher; reduced motion verified.

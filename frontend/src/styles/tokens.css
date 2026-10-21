@@ -87,71 +87,6 @@ pre,
   cursor: default;
 }
 
-/* Diff card: the brand. Red = removed, green = added. */
-.diff {
-  border: 1px solid var(--line);
-  border-radius: 2px;
-  background: #fff;
-  color: var(--ink); /* stays readable inside dark and red scenes */
-  overflow: hidden;
-  font-family: var(--mono);
-  font-size: 13px;
-  line-height: 1.7;
-}
-
-.diff header {
-  padding: 0.5rem 0.75rem;
-  border-bottom: 1px solid var(--line);
-  color: var(--muted);
-}
-
-.diff ol {
-  list-style: none;
-  margin: 0;
-  padding: 0.25rem 0;
-  overflow-x: auto; /* long code lines scroll inside the card on small screens */
-}
-
-.diff li {
-  position: relative;
-  display: flex;
-  gap: 0.75rem;
-  padding: 0 0.75rem;
-  white-space: pre;
-}
-
-.diff li .n {
-  color: var(--muted);
-  min-width: 1.5rem;
-  text-align: right;
-}
-
-.diff li.add {
-  background: rgb(125 219 140 / 28%);
-}
-
-.diff li.del {
-  background: rgb(229 18 11 / 10%);
-}
-
-.marker {
-  position: absolute;
-  left: 0.15rem; /* in the gutter, so it never covers code */
-  top: 0.5rem;
-  width: 0.55rem;
-  height: 0.55rem;
-  border-radius: 50%;
-  background: var(--signal-red);
-}
-
-.comment {
-  border-left: 3px solid var(--signal-red);
-  background: #fff;
-  color: var(--ink);
-  padding: 0.75rem 1rem;
-  font-size: 15px;
-}
-
 /* Dashboard: calm and fast. */
 .app-bar {
   display: flex;
@@ -235,175 +170,265 @@ th {
   background: #fff;
 }
 
-/* Landing (docs/DESIGN.md §5-6). */
-.hero-stage {
-  top: 0;
-  min-height: 100vh;
-  display: grid;
-  grid-template-columns: 1fr;
-  align-content: center;
-  justify-items: center;
-  gap: 2rem;
-  padding: 2rem 1rem;
-  overflow: hidden;
-}
-
-.hero-title {
-  font-size: clamp(4rem, 14vw, 13rem);
-  text-align: center;
-  grid-row: 1;
-  grid-column: 1;
-  z-index: 0;
-}
-
-.hero-card {
-  grid-row: 1;
-  grid-column: 1;
-  z-index: 1;
-  width: min(34rem, 100%);
-  min-width: 0;
-  box-shadow: 0 30px 60px -30px rgb(10 10 10 / 45%); /* the one soft shadow (DESIGN.md §3) */
-  will-change: transform;
-}
-
-/* Without the scroll tilt the card would hide the headline: stack them instead. */
-.hero.still .hero-card {
-  grid-row: 2;
-}
-
-.hero-copy {
-  max-width: 38rem;
-  text-align: center;
-}
-
-.pin {
+/* Landing: a live surface, brutalist (scrollcraft/builds/diffmate-landing/BRIEF.md).
+   Raw 2px ink rules, code at display scale, one full-bleed red moment. */
+.chrome {
   position: sticky;
   top: 0;
-  height: 100vh;
-  overflow: hidden;
+  z-index: 10;
+  display: flex;
+  gap: 1.25rem;
+  align-items: baseline;
+  padding: 0.75rem 1rem;
+  background: var(--paper);
+  border-bottom: 2px solid var(--ink);
+  font: 400 13px/1 var(--mono);
 }
 
-.pin .scene {
+.chrome .wordmark {
+  font: 400 1.5rem/1 var(--display);
+  text-transform: uppercase;
+  margin-right: auto;
+}
+
+.chrome a {
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.chrome a:hover {
+  text-decoration: underline;
+}
+
+.act {
+  padding: 4rem 1rem;
+  border-bottom: 2px solid var(--ink);
+}
+
+.hook {
+  min-height: calc(100vh - 3rem);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.hook h1 {
+  font: 600 1.15rem/1.4 var(--body);
+  text-transform: none;
+  max-width: 34rem;
+}
+
+.pr-head .pr-title {
+  margin: 0.5rem 0;
+  font: 400 clamp(4rem, 13vw, 12rem) / 0.88 var(--display);
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+}
+
+.review-track {
+  height: 400vh;
+}
+
+.review.pin {
+  position: sticky;
+  top: 3rem;
+  height: calc(100vh - 3rem);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding-top: 1.5rem;
+  border-bottom: 0;
+}
+
+.statusline {
+  margin: 0;
+}
+
+.surface {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  border: 2px solid var(--ink);
+  background: #fff;
+  min-height: 0;
+}
+
+.surface > .side {
+  border-left: 2px solid var(--ink);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.code {
+  list-style: none;
+  margin: 0;
+  padding: 0.75rem 0;
+  font: 400 clamp(0.85rem, 1.4vw, 1.45rem) / 1.45 var(--mono);
+  overflow-x: auto;
+}
+
+.code li {
+  position: relative;
+  display: flex;
+  gap: 1rem;
+  padding: 0 1rem;
+  white-space: pre;
+}
+
+.code .n {
+  position: relative;
+  color: var(--muted);
+  min-width: 2ch;
+  text-align: right;
+}
+
+.code .t {
+  position: relative; /* above the red bar */
+}
+
+/* The peak: a hard full-width red bar across the buggy line. */
+.slam {
   position: absolute;
   inset: 0;
-  display: flex;
-  align-items: center;
-  border-top: 1px solid var(--ink);
+  background: var(--signal-red);
+  transform-origin: left center;
   will-change: transform;
 }
 
-.scene {
-  background: var(--paper);
+.bug-line.hit .t,
+.bug-line.hit .n {
+  color: #fff; /* 4.7:1 on signal red */
 }
 
-.scene.stacked {
-  padding: 4rem 0;
-  border-top: 1px solid var(--line);
+.code.small {
+  font-size: 14px;
 }
 
-.scene.dark {
-  background: var(--ink);
-  color: var(--paper);
+.code li.changed {
+  background: rgb(229 18 11 / 12%);
+  box-shadow: inset 4px 0 var(--signal-red);
 }
 
-.scene.dark .mono,
-.scene.red .mono {
-  color: inherit;
-}
-
-.scene.red {
-  background: var(--signal-red);
-  color: #fff; /* white on signal red is 4.7:1; ink would be 4.2:1, too low for body text */
-}
-
-.scene-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 3rem;
-  align-items: center;
-  width: 100%;
-}
-
-.scene-grid h2 {
-  font-size: clamp(2.5rem, 6vw, 5.5rem);
-  margin: 0.5rem 0 1rem;
-}
-
-.scene-grid p {
-  max-width: 32rem;
-}
-
-.jobs,
 .trace {
   list-style: none;
   margin: 0;
   padding: 0;
+  font-size: 12px;
 }
 
-.jobs li,
 .trace li {
-  border: 1px solid currentColor;
-  border-radius: 2px;
-  padding: 0.6rem 0.75rem;
-  margin-bottom: 0.5rem;
+  border-left: 2px solid var(--ink);
+  padding: 0.25rem 0.5rem;
+  margin-bottom: 0.4rem;
+  overflow-wrap: anywhere;
 }
 
-.jobs li:first-child {
-  border-color: var(--add-green);
+.review-comment {
+  border: 2px solid var(--ink);
+  box-shadow: inset 6px 0 var(--signal-red);
+  background: #fff;
+  color: var(--ink);
+  padding: 0.75rem 1rem 0.75rem 1.25rem;
 }
 
-.results {
-  padding-top: 6rem;
-  padding-bottom: 6rem;
+.review-comment p {
+  margin: 0 0 0.5rem;
 }
 
-.results h2 {
-  font-size: clamp(2.5rem, 7vw, 6rem);
-  margin-bottom: 1rem;
-}
-
-.results > p {
-  max-width: 44rem;
-}
-
-.stats {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 1.5rem;
-  margin: 3rem 0;
-}
-
-.stats dt {
-  font: 400 13px/1.4 var(--mono);
-  color: var(--muted);
-}
-
-.stats dd {
-  margin: 0.25rem 0 0;
-  font: 400 clamp(3rem, 7vw, 5.5rem) / 1 var(--display);
-}
-
-.closing {
-  padding: 8rem 0;
-  background: linear-gradient(var(--deep-red), var(--ink)); /* the only gradient (DESIGN.md §3) */
+.numbers {
+  background: var(--ink);
   color: var(--paper);
 }
 
-.closing h2 {
-  font-size: clamp(3rem, 10vw, 9rem);
-  margin-bottom: 1rem;
+.numbers dl {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 2rem;
+  margin: 2rem 0;
 }
 
-.closing .button {
-  background: var(--signal-red);
-  border-color: var(--signal-red);
-  color: #fff;
+.numbers dd {
+  margin: 0;
+  font: 400 clamp(4rem, 10vw, 10rem) / 0.85 var(--display);
+}
+
+.numbers dt {
+  font: 400 14px/1.4 var(--mono);
+  margin-top: 0.75rem;
+  max-width: 22ch;
+}
+
+.numbers .note {
+  max-width: 62ch;
+  color: #d9d5cc; /* paper, slightly dimmed: 13:1 on ink */
+}
+
+.plant h2 {
+  font-size: clamp(2.5rem, 7vw, 6rem);
+  margin-bottom: 1.5rem;
+}
+
+.plant fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0 0 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.plant legend {
+  margin-bottom: 0.5rem;
+}
+
+.plant label {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  border: 2px solid var(--ink);
+  padding: 0.6rem 0.9rem;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.plant label:has(input:checked) {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.plant label:has(input:focus-visible) {
+  outline: 2px solid var(--signal-red);
+  outline-offset: 3px;
+}
+
+.note {
+  font-size: 13px;
+}
+
+.close {
+  padding: 6rem 1rem 8rem;
+  border-bottom: 0;
+}
+
+.close p {
+  font-size: 15px;
+  max-width: 44rem;
 }
 
 @media (max-width: 640px) {
-  .scene-grid,
-  .stats {
+  .surface,
+  .numbers dl {
     grid-template-columns: 1fr;
-    gap: 1.5rem;
+  }
+
+  .surface > .side {
+    border-left: 0;
+    border-top: 2px solid var(--ink);
+  }
+
+  .chrome {
+    gap: 0.75rem;
   }
 }

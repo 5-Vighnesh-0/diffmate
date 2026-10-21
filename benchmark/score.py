@@ -82,7 +82,7 @@ def write_between_markers(doc: Path, key: str, text: str) -> None:
 
 
 def report(path: Path) -> tuple[str, str, dict]:
-    """(marker key, Markdown, summaries) for one results file, e.g. dev-gemini-3.5-flash-lite-<sha>."""
+    """(marker key, Markdown, summaries) for one results file, e.g. dev-<model>-<sha>.jsonl."""
     rows = [json.loads(line) for line in path.read_text().splitlines()]
     split, rest = path.stem.split("-", 1)
     model, sha = rest.rsplit("-", 1)
@@ -94,7 +94,8 @@ def report(path: Path) -> tuple[str, str, dict]:
         "Cost is estimated at list price; the free tier costs $0."
     )
     key = split if model == "gemini-3.5-flash-lite" else f"{split}-{model}"
-    return key, text + note, {"cases": len(rows), "model": model, "case_set": sha, "setups": summaries}
+    entry = {"cases": len(rows), "model": model, "case_set": sha, "setups": summaries}
+    return key, text + note, entry
 
 
 def write_json(path: Path, key: str, entry: dict) -> None:

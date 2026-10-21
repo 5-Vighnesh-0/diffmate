@@ -3,22 +3,23 @@ import {
   motion,
   type MotionValue,
   useInView,
-  useReducedMotion,
+  useMotionValueEvent,
   useScroll,
-  useSpring,
   useTransform,
 } from "motion/react";
-import { type ReactNode, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
 import bench from "../lib/benchmark.json";
+import demo from "../lib/demo.json";
 import { Link } from "../lib/router";
-import { springScrub } from "../motion/tokens";
 
-// Real benchmark numbers, written by `make bench-score` (docs/benchmark.md).
-const holdout = bench.holdout.setups;
-const dev = bench.dev.setups;
-const pct = (v: number | null) => (v === null ? "n/a" : `${Math.round(v * 100)}%`);
+// Live-surface page (scrollcraft/builds/diffmate-landing/BRIEF.md): every comment, step and
+// number below is recorded output, from `make bench-score` and `python -m benchmark.demo`.
+const holdout = bench.holdout.setups.filtered;
+const peak = demo.peak;
+const peakComment = peak.comments[0];
+const lines = peak.after.replace(/\n$/, "").split("\n");
+const totalChars = lines.reduce((n, l) => n + l.length + 1, 0);
 
-// Pinned scroll effects only where they help: off with reduced motion and on small screens.
 const STILL = "(max-width: 640px), (prefers-reduced-motion: reduce)"; // comma = or
 
 function useStill() {
@@ -32,298 +33,247 @@ function useStill() {
   );
 }
 
-type Line = { n: number; kind: "add" | "del" | "ctx"; text: string; marked?: boolean };
+// Scroll stages of the pinned review act, as fractions of its scroll span.
+const TYPE_END = 0.45; // the code is fully written
+const TRACE = [0.5, 0.58, 0.66]; // each AI step appears
+const SLAM = [0.74, 0.78]; // the red bar crosses the buggy line
+const LAND = 0.82; // the comment lands; the rest is a held silence
 
-const DIFF: Line[] = [
-  { n: 1, kind: "del", text: "def average(values):" },
-  { n: 2, kind: "del", text: "    return sum(values) / len(values)" },
-  { n: 1, kind: "add", text: "def average(values):" },
-  { n: 2, kind: "add", text: "    total = 0" },
-  { n: 3, kind: "add", text: "    for i in range(1, len(values)):", marked: true },
-  { n: 4, kind: "add", text: "        total += values[i]" },
-  { n: 5, kind: "add", text: "    return total / len(values)" },
-];
-
-function DiffCard({ marked = false }: { marked?: boolean }) {
+function Code({ chars, slam, hit }: { chars: number; slam: MotionValue<number> | number; hit: boolean }) {
+  let left = chars;
   return (
-    <figure className="diff" style={{ margin: 0 }} aria-label="A pull request changing stats.py">
-      <header>stats.py</header>
-      <ol>
-        {DIFF.map((l, i) => (
-          <li key={i} className={l.kind}>
-            <span className="n">{l.n}</span>
-            <span aria-hidden>{l.kind === "add" ? "+" : l.kind === "del" ? "-" : " "}</span>
-            {l.text}
-            {marked && l.marked && (
-              <motion.i
-                className="marker"
-                role="img"
-                aria-label="Finding on this line"
-                initial={{ scale: 0 }}
-                whileInView={{ scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ type: "spring", stiffness: 260, damping: 22 }}
-              />
-            )}
+    <ol className="code" aria-label={`${demo.path}, as written in the pull request`}>
+      {lines.map((text, i) => {
+        const shown = text.slice(0, Math.max(0, left));
+        const visible = left > 0;
+        left -= text.length + 1;
+        const bug = i + 1 === peakComment.line;
+        return (
+          <li key={i} className={bug ? `bug-line${hit ? " hit" : ""}` : undefined} style={{ visibility: visible ? "visible" : "hidden" }}>
+            {bug && <motion.i className="slam" aria-hidden style={{ scaleX: slam }} />}
+            <span className="n">{i + 1}</span>
+            <span className="t">{shown || " "}</span>
           </li>
-        ))}
-      </ol>
-    </figure>
+        );
+      })}
+    </ol>
   );
 }
 
-function Hero() {
-  const still = useStill();
-  const ref = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end end"] });
-  const p = useSpring(scrollYProgress, springScrub);
-  const rotateZ = useTransform(p, [0, 0.66], [-16, 0]);
-  const rotateY = useTransform(p, [0, 0.66], [-12, 0]);
-  const scale = useTransform(p, [0, 0.66], [1.15, 1]);
-  const headlineY = useTransform(p, [0, 1], ["0vh", "-40vh"]);
-
+function Comment() {
   return (
-    <div ref={ref} className={still ? "hero still" : "hero"} style={{ height: still ? "auto" : "150vh" }}>
-      <div className="hero-stage" style={{ position: still ? "static" : "sticky" }}>
-        <motion.h1 className="hero-title" style={still ? undefined : { y: headlineY }}>
-          Every diff, reviewed.
-        </motion.h1>
-        <motion.div
-          className="hero-card"
-          style={still ? undefined : { rotateZ, rotateY, scale, transformPerspective: 1200 }}
-        >
-          <DiffCard marked />
-        </motion.div>
-        <div className="hero-copy">
-          <p>
-            DiffMate is a GitHub App that reads each pull request and leaves at most five comments, only where it
-            found a real problem. It never changes your code.
-          </p>
-          <p style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", justifyContent: "center" }}>
-            <a className="button" href="#results">
-              See how accurate it is
-            </a>
-            <Link className="button quiet" href="/dashboard">
-              Open the dashboard
-            </Link>
-          </p>
+    <aside className="review-comment" aria-label="DiffMate's comment">
+      <p className="mono">
+        diffmate[bot] on line {peakComment.line}: {peakComment.category}, {peakComment.severity}
+      </p>
+      <p>{peakComment.explanation}</p>
+    </aside>
+  );
+}
+
+function Trace({ shown }: { shown: number }) {
+  return (
+    <ol className="trace mono" aria-label="What the AI did">
+      {peak.trace.map((s, i) => (
+        <li key={s} style={{ opacity: i < shown ? 1 : 0 }}>
+          {s}
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+function ReviewStill() {
+  return (
+    <section className="act review" aria-label="The review" data-testid="review-still">
+      <div className="surface">
+        <Code chars={totalChars} slam={1} hit />
+        <div className="side">
+          <Trace shown={peak.trace.length} />
+          <Comment />
         </div>
       </div>
-    </div>
+    </section>
   );
 }
 
-const SCENES: { title: string; body: string; visual: ReactNode; dark?: boolean; red?: boolean }[] = [
-  {
-    title: "A pull request opens",
-    body: "GitHub tells DiffMate a new commit is ready. Forged or replayed notifications are rejected.",
-    visual: <DiffCard />,
-  },
-  {
-    title: "It waits its turn",
-    body: "Each commit gets one review job. Pushing again queues a new one; the same commit is never reviewed twice.",
-    dark: true,
-    visual: (
-      <ul className="jobs mono">
-        <li>stats.py, commit 3f9c2ab: reviewing</li>
-        <li>parser.py, commit 81d0e4c: waiting</li>
-        <li>api.py, commit c27a913: waiting</li>
-      </ul>
-    ),
-  },
-  {
-    title: "The AI reads around the change",
-    body: "It can open files, search the repository, and find related tests. It cannot run code, write files, or reach the internet.",
-    visual: (
-      <ol className="trace mono">
-        <li>read_file("stats.py")</li>
-        <li>search_repo("average(")</li>
-        <li>list_related_tests("stats.py")</li>
-        <li>submit_findings(1 finding)</li>
-      </ol>
-    ),
-  },
-  {
-    title: "It marks what is wrong",
-    body: "Findings outside the changed lines, below 70% confidence, or repeated are dropped. At most five remain.",
-    dark: true,
-    visual: <DiffCard marked />,
-  },
-  {
-    title: "A comment lands on the line",
-    body: "One review, posted as a comment on the exact line. Plain text only, no links.",
-    red: true,
-    visual: (
-      <div className="comment">
-        <strong>Bug, high severity.</strong> The loop starts at 1, so the first value is never added and the average
-        comes out too low.
-      </div>
-    ),
-  },
-];
-
-function SceneContent({ s, i }: { s: (typeof SCENES)[number]; i: number }) {
-  return (
-    <div className="scene-grid wrap">
-      <div>
-        <p className="mono">Step {i + 1} of 5</p>
-        <h2>{s.title}</h2>
-        <p>{s.body}</p>
-      </div>
-      <div>{s.visual}</div>
-    </div>
-  );
-}
-
-function WipedScene({ p, i, s }: { p: MotionValue<number>; i: number; s: (typeof SCENES)[number] }) {
-  // Scene i slides up over scene i-1 with a hard edge (transform only, DESIGN.md T2).
-  const start = (i - 1) / (SCENES.length - 1);
-  const y = useTransform(p, [start, start + 0.15], ["100%", "0%"]);
-  return (
-    <motion.section className={sceneClass(s)} style={i === 0 ? undefined : { y }} aria-label={s.title}>
-      <SceneContent s={s} i={i} />
-    </motion.section>
-  );
-}
-
-const sceneClass = (s: (typeof SCENES)[number]) => `scene${s.dark ? " dark" : ""}${s.red ? " red" : ""}`;
-
-function Pipeline() {
-  if (useStill())
-    return (
-      <div data-testid="pipeline-stacked">
-        {SCENES.map((s, i) => (
-          <section key={s.title} className={`${sceneClass(s)} stacked`} aria-label={s.title}>
-            <SceneContent s={s} i={i} />
-          </section>
-        ))}
-      </div>
-    );
-
-  return <PinnedPipeline />;
-}
-
-// Scroll tracking lives here so it only runs when its target element is rendered.
-function PinnedPipeline() {
+// Signature move: the visitor's scroll writes the pull request, then DiffMate reviews it.
+function ReviewPinned() {
   const ref = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end end"] });
-  const p = useSpring(scrollYProgress, springScrub);
+  const { scrollYProgress: p } = useScroll({ target: ref, offset: ["start start", "end end"] });
+  const [progress, setProgress] = useState(0);
+  useMotionValueEvent(p, "change", setProgress);
+  const slam = useTransform(p, SLAM, [0, 1]);
+
+  const chars = Math.round(Math.min(progress / TYPE_END, 1) * totalChars);
+  const stepsShown = TRACE.filter((at) => progress >= at).length;
+  const status =
+    progress < TYPE_END ? "being written" : progress < SLAM[0] ? "DiffMate is reviewing" : "1 comment from DiffMate";
+  const landed = progress >= LAND;
+
   return (
-    <div ref={ref} style={{ height: `${SCENES.length * 100}vh` }} data-testid="pipeline-pinned">
-      <div className="pin">
-        {SCENES.map((s, i) => (
-          <WipedScene key={s.title} p={p} i={i} s={s} />
-        ))}
-      </div>
+    <div ref={ref} className="review-track" data-testid="review-pinned">
+      <section className="act review pin" aria-label="The review">
+        <p className="statusline mono">
+          {demo.path}, {status}
+        </p>
+        <div className="surface">
+          <Code chars={chars} slam={slam} hit={progress >= SLAM[1]} />
+          <div className="side">
+            <Trace shown={stepsShown} />
+            {landed && (
+              <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.18 }}>
+                <Comment />
+              </motion.div>
+            )}
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
 
-function Counter({ value, format }: { value: number; format: (v: number) => string }) {
+function Count({ value, format }: { value: number; format: (v: number) => string }) {
   const ref = useRef<HTMLSpanElement>(null);
   const inView = useInView(ref, { once: true });
-  const reduce = useReducedMotion();
-  const [shown, setShown] = useState(reduce ? value : 0);
+  const still = useStill();
+  const [shown, setShown] = useState(still ? value : 0);
 
   useEffect(() => {
-    if (!inView || reduce) return;
+    if (still) return setShown(value);
+    if (!inView) return;
     const controls = animate(0, value, { duration: 1.2, ease: "easeOut", onUpdate: setShown });
     return () => controls.stop();
-  }, [inView, reduce, value]);
+  }, [inView, still, value]);
 
   return <span ref={ref}>{format(shown)}</span>;
 }
 
-function Results() {
-  const rows = [
-    ["Linters only (ruff, ESLint)", "linter"],
-    ["AI only", "agent"],
-    ["AI with DiffMate's filters", "filtered"],
-  ] as const;
+const pct = (v: number) => `${Math.round(v * 100)}%`;
+
+function Numbers() {
   return (
-    <section id="results" className="results wrap">
-      <h2>Measured, not promised</h2>
-      <p>
-        Tested on 60 pull requests from 10 open-source projects (httpx, Flask, Zod, Hono and others), each with a known
-        answer. 12 were held back and run once, after all tuning. Model: Gemini Flash Lite on the free tier.
-      </p>
-      <dl className="stats">
+    <section id="numbers" className="act numbers" aria-label="How accurate it is">
+      <p className="mono">Benchmark: {bench.holdout.cases} held-out pull requests, run once</p>
+      <dl>
         <div>
-          <dt>Comments that were right</dt>
           <dd>
-            <Counter value={holdout.filtered.precision ?? 0} format={(v) => `${Math.round(v * 100)}%`} />
+            <Count value={holdout.precision ?? 0} format={pct} />
           </dd>
+          <dt>of its comments were right</dt>
         </div>
         <div>
-          <dt>Bugs found, held-out set</dt>
           <dd>
-            <Counter value={holdout.filtered.recall ?? 0} format={(v) => `${Math.round(v * 100)}%`} />
+            <Count value={holdout.recall ?? 0} format={pct} />
           </dd>
+          <dt>of the bugs it found. It misses most, and says so.</dt>
         </div>
         <div>
-          <dt>False alarms per pull request</dt>
           <dd>
-            <Counter value={holdout.filtered.fp_per_pr} format={(v) => v.toFixed(2)} />
+            <Count value={holdout.fp_per_pr} format={(v) => v.toFixed(2)} />
           </dd>
-        </div>
-        <div>
-          <dt>Cost per review (list price)</dt>
-          <dd>
-            <Counter value={holdout.filtered.cost_per_pr} format={(v) => `$${v.toFixed(3)}`} />
-          </dd>
+          <dt>false alarms per pull request</dt>
         </div>
       </dl>
-      <div className="table-scroll">
-        <table>
-          <thead>
-            <tr>
-              <th>Setup</th>
-              <th>Comments that were right</th>
-              <th>Bugs found (held-out, 12 PRs)</th>
-              <th>Bugs found (tuning set, 48 PRs)</th>
-              <th>False alarms per PR</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map(([label, key]) => (
-              <tr key={key}>
-                <td>{label}</td>
-                <td>{pct(holdout[key].precision)}</td>
-                <td>{pct(holdout[key].recall)}</td>
-                <td>{pct(dev[key].recall)}</td>
-                <td>{holdout[key].fp_per_pr.toFixed(2)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <p className="mono">
-        It misses more than half of bugs, and says so. When it does comment, it has been right every time so far.
+      <p className="note">
+        60 pull requests from 10 open-source projects (httpx, Flask, Zod, Hono and others), each with a known answer. On
+        the 48 cases used for tuning it found {pct(bench.dev.setups.filtered.recall ?? 0)} of the bugs; linters alone
+        found {pct(bench.dev.setups.linter.recall ?? 0)}. Model: Gemini Flash Lite on the free tier, estimated $
+        {holdout.cost_per_pr.toFixed(3)} per review at list price.
       </p>
     </section>
   );
 }
 
+const BREAK_LABELS: Record<string, string> = {
+  loop: "Start the loop at 1",
+  slice: "Take the last n items with items[-n:]",
+  shell: "Run tar through the shell",
+};
+
+type BreakKey = keyof typeof demo.breaks;
+
+function PlantABug() {
+  const [choice, setChoice] = useState<BreakKey | null>(null);
+  const name = useId();
+  const run = choice ? demo.breaks[choice] : null;
+  const clean = demo.clean.replace(/\n$/, "").split("\n");
+  const after = run ? run.after.replace(/\n$/, "").split("\n") : clean;
+
+  return (
+    <section id="try" className="act plant" aria-label="Plant a bug">
+      <h2>Break one line. See what DiffMate said.</h2>
+      <fieldset>
+        <legend className="mono">Your change to {demo.path}</legend>
+        {(Object.keys(demo.breaks) as BreakKey[]).map((key) => (
+          <label key={key}>
+            <input type="radio" name={name} value={key} checked={choice === key} onChange={() => setChoice(key)} />
+            {BREAK_LABELS[key] ?? key}
+          </label>
+        ))}
+      </fieldset>
+      <div className="surface">
+        <ol className="code small" aria-label={`${demo.path}, with your change`}>
+          {after.map((text, i) => (
+            <li key={i} className={run && text !== clean[i] ? "changed" : undefined}>
+              <span className="n">{i + 1}</span>
+              <span className="t">{text || " "}</span>
+            </li>
+          ))}
+        </ol>
+        <div className="side" aria-live="polite">
+          {!run && <p>Pick a change. Each one was reviewed by the real DiffMate.</p>}
+          {run && run.comments.length === 0 && <p>DiffMate posted nothing for this change.</p>}
+          {run?.comments.map((c) => (
+            <aside className="review-comment" key={c.line}>
+              <p className="mono">
+                diffmate[bot] on line {c.line}: {c.category}, {c.severity}
+              </p>
+              <p>{c.explanation}</p>
+            </aside>
+          ))}
+          {run && (
+            <p className="mono note">
+              Recorded {demo.recorded} with {demo.model}, {run.llm_requests} AI requests. Not live.
+            </p>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export function Landing() {
+  const still = useStill();
   return (
     <>
-      <header className="wrap app-bar">
-        <span className="brand">DiffMate</span>
-        <Link href="/dashboard">Dashboard</Link>
-      </header>
+      <nav className="chrome" aria-label="Page">
+        <span className="wordmark">DiffMate</span>
+        <a href="#review">Review</a>
+        <a href="#numbers">Numbers</a>
+        <a href="#try">Try it</a>
+        <Link href="/dashboard" className="right">
+          Dashboard
+        </Link>
+      </nav>
       <main>
-        <Hero />
-        <Pipeline />
-        <Results />
-        <section className="closing">
-          <div className="wrap">
-            <h2>Get a second reviewer</h2>
-            <p>Install the GitHub App on a repository, then open a pull request.</p>
-            <Link className="button" href="/dashboard">
-              Open the dashboard
-            </Link>
+        <header className="act hook">
+          <h1>DiffMate reviews your pull requests and comments only where it finds a bug.</h1>
+          <div className="pr-head">
+            <p className="mono">Pull request #12, {demo.path}</p>
+            <p className="pr-title">Add stats helpers</p>
+            <p className="mono">Review requested from diffmate[bot]. Waiting.</p>
           </div>
-        </section>
+        </header>
+        <div id="review">{still ? <ReviewStill /> : <ReviewPinned />}</div>
+        <Numbers />
+        <PlantABug />
+        <footer className="act close">
+          <p>
+            Install it on a repository, open a pull request, and the review appears there.{" "}
+            <Link href="/dashboard">Open the dashboard</Link>
+          </p>
+        </footer>
       </main>
     </>
   );
