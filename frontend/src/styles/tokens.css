@@ -1,0 +1,409 @@
+/* Tokens from docs/DESIGN.md §3. One red moment per screen; green only for "added". */
+:root {
+  --paper: #f3f0e8;
+  --ink: #0a0a0a;
+  --signal-red: #e5120b;
+  --add-green: #7ddb8c;
+  --deep-red: #3a0a0d;
+  --line: rgb(10 10 10 / 12%);
+  --muted: #55524b; /* ink on paper at 7:1, for secondary text */
+
+  --display: "Anton", "Impact", sans-serif;
+  --body: "Inter", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, monospace;
+
+  color-scheme: light;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: 400 17px/1.55 var(--body);
+  font-variant-numeric: tabular-nums;
+}
+
+a {
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--signal-red);
+  outline-offset: 3px;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--display);
+  font-weight: 400;
+  text-transform: uppercase;
+  line-height: 0.9;
+  margin: 0;
+}
+
+code,
+pre,
+.mono {
+  font-family: var(--mono);
+  font-size: 13px;
+}
+
+.wrap {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.button {
+  display: inline-block;
+  border: 1px solid var(--ink);
+  border-radius: 2px;
+  padding: 0.6rem 1rem;
+  background: var(--ink);
+  color: var(--paper);
+  font: 600 15px/1 var(--body);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.button.quiet {
+  background: transparent;
+  color: var(--ink);
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Diff card: the brand. Red = removed, green = added. */
+.diff {
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background: #fff;
+  color: var(--ink); /* stays readable inside dark and red scenes */
+  overflow: hidden;
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.diff header {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+}
+
+.diff ol {
+  list-style: none;
+  margin: 0;
+  padding: 0.25rem 0;
+  overflow-x: auto; /* long code lines scroll inside the card on small screens */
+}
+
+.diff li {
+  position: relative;
+  display: flex;
+  gap: 0.75rem;
+  padding: 0 0.75rem;
+  white-space: pre;
+}
+
+.diff li .n {
+  color: var(--muted);
+  min-width: 1.5rem;
+  text-align: right;
+}
+
+.diff li.add {
+  background: rgb(125 219 140 / 28%);
+}
+
+.diff li.del {
+  background: rgb(229 18 11 / 10%);
+}
+
+.marker {
+  position: absolute;
+  left: 0.15rem; /* in the gutter, so it never covers code */
+  top: 0.5rem;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: var(--signal-red);
+}
+
+.comment {
+  border-left: 3px solid var(--signal-red);
+  background: #fff;
+  color: var(--ink);
+  padding: 0.75rem 1rem;
+  font-size: 15px;
+}
+
+/* Dashboard: calm and fast. */
+.app-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-block: 1rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.app-bar .brand {
+  font: 400 1.6rem/1 var(--display);
+  text-transform: uppercase;
+  text-decoration: none;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 0.6rem 0.5rem;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+
+th {
+  font: 400 12px/1.4 var(--mono);
+  color: var(--muted);
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+.status {
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.status.failed,
+.status.paused_daily_cap {
+  color: var(--signal-red);
+}
+
+.finding {
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background: #fff;
+  padding: 1rem;
+  margin: 0 0 1rem;
+}
+
+.finding .meta {
+  color: var(--muted);
+  margin: 0 0 0.5rem;
+}
+
+.finding p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin: 0 0 0.75rem;
+}
+
+.finding .actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.button[aria-pressed="true"] {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.notice {
+  padding: 1rem;
+  border: 1px solid var(--line);
+  background: #fff;
+}
+
+/* Landing (docs/DESIGN.md §5-6). */
+.hero-stage {
+  top: 0;
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr;
+  align-content: center;
+  justify-items: center;
+  gap: 2rem;
+  padding: 2rem 1rem;
+  overflow: hidden;
+}
+
+.hero-title {
+  font-size: clamp(4rem, 14vw, 13rem);
+  text-align: center;
+  grid-row: 1;
+  grid-column: 1;
+  z-index: 0;
+}
+
+.hero-card {
+  grid-row: 1;
+  grid-column: 1;
+  z-index: 1;
+  width: min(34rem, 100%);
+  min-width: 0;
+  box-shadow: 0 30px 60px -30px rgb(10 10 10 / 45%); /* the one soft shadow (DESIGN.md §3) */
+  will-change: transform;
+}
+
+/* Without the scroll tilt the card would hide the headline: stack them instead. */
+.hero.still .hero-card {
+  grid-row: 2;
+}
+
+.hero-copy {
+  max-width: 38rem;
+  text-align: center;
+}
+
+.pin {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.pin .scene {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  border-top: 1px solid var(--ink);
+  will-change: transform;
+}
+
+.scene {
+  background: var(--paper);
+}
+
+.scene.stacked {
+  padding: 4rem 0;
+  border-top: 1px solid var(--line);
+}
+
+.scene.dark {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.scene.dark .mono,
+.scene.red .mono {
+  color: inherit;
+}
+
+.scene.red {
+  background: var(--signal-red);
+  color: #fff; /* white on signal red is 4.7:1; ink would be 4.2:1, too low for body text */
+}
+
+.scene-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3rem;
+  align-items: center;
+  width: 100%;
+}
+
+.scene-grid h2 {
+  font-size: clamp(2.5rem, 6vw, 5.5rem);
+  margin: 0.5rem 0 1rem;
+}
+
+.scene-grid p {
+  max-width: 32rem;
+}
+
+.jobs,
+.trace {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.jobs li,
+.trace li {
+  border: 1px solid currentColor;
+  border-radius: 2px;
+  padding: 0.6rem 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.jobs li:first-child {
+  border-color: var(--add-green);
+}
+
+.results {
+  padding-top: 6rem;
+  padding-bottom: 6rem;
+}
+
+.results h2 {
+  font-size: clamp(2.5rem, 7vw, 6rem);
+  margin-bottom: 1rem;
+}
+
+.results > p {
+  max-width: 44rem;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+  margin: 3rem 0;
+}
+
+.stats dt {
+  font: 400 13px/1.4 var(--mono);
+  color: var(--muted);
+}
+
+.stats dd {
+  margin: 0.25rem 0 0;
+  font: 400 clamp(3rem, 7vw, 5.5rem) / 1 var(--display);
+}
+
+.closing {
+  padding: 8rem 0;
+  background: linear-gradient(var(--deep-red), var(--ink)); /* the only gradient (DESIGN.md §3) */
+  color: var(--paper);
+}
+
+.closing h2 {
+  font-size: clamp(3rem, 10vw, 9rem);
+  margin-bottom: 1rem;
+}
+
+.closing .button {
+  background: var(--signal-red);
+  border-color: var(--signal-red);
+  color: #fff;
+}
+
+@media (max-width: 640px) {
+  .scene-grid,
+  .stats {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+}

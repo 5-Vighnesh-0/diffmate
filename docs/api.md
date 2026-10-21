@@ -1,6 +1,6 @@
 # HTTP API
 
-Status: implemented (Phases 1–3). `GET /api/benchmark/summary` arrives in Phase 4.
+Status: implemented (Phases 1–3).
 
 Conventions: JSON bodies, UTC ISO 8601 timestamps, errors as `{"error": {"code": "...", "message": "..."}}`. Dashboard endpoints require a session cookie. State-changing dashboard endpoints require a CSRF token.
 
@@ -65,9 +65,9 @@ Ordered steps: `step_no, tool, summary, tokens_in, tokens_out, duration_ms`. Sum
 
 Body `{"verdict": "accept" | "reject"}` (other values: `422`). Requires the `X-CSRF-Token` header (`403` otherwise). One vote per user, and a later vote replaces it. Returns `204`.
 
-### `GET /api/benchmark/summary`
+### Benchmark numbers (no endpoint)
 
-Latest benchmark metrics for the three setups. Feeds the landing page results section.
+The landing page's results are bundled at build time from `frontend/src/lib/benchmark.json`, which `make bench-score` writes. They change only when the benchmark is re-run, so a live endpoint was dropped in Phase 5 (decided by: Vighnesh, 2026-10-21).
 
 ## Rate limits
 

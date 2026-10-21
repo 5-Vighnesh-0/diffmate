@@ -6,13 +6,12 @@ TypeScript, React, Vite, Framer Motion. Design spec: `../docs/DESIGN.md`.
 
 ```
 src/
-  routes/       landing, dashboard, run detail
-  scenes/       landing page scroll scenes
-  motion/       shared motion tokens and helpers
-  components/
-  lib/          API client
-  styles/       tokens (colors, fonts)
-tests/
+  routes/       Landing (all landing scenes), Dashboard, RunDetail
+  components/ui Shell: sign-in state, quota, sign out
+  motion/       motion tokens
+  lib/          API client, ~30-line router, benchmark.json (written by `make bench-score`)
+  styles/       tokens.css: colors, type, all styles
+tests/unit/     Vitest + Testing Library (`pnpm test`)
 ```
 
 ## Rules

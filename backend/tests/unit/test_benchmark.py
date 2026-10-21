@@ -171,6 +171,15 @@ def test_write_between_markers_replaces_only_the_marked_block(tmp_path):
     assert doc.read_text() == "top\n<!-- bench:dev -->\nnew table\n<!-- /bench:dev -->\nbottom\n"
 
 
+def test_write_json_adds_one_key_and_keeps_the_others(tmp_path):
+    out = tmp_path / "b.json"
+    score.write_json(out, "dev", {"cases": 1})
+    score.write_json(out, "holdout", {"cases": 2})
+    score.write_json(out, "dev", {"cases": 3})
+
+    assert json.loads(out.read_text()) == {"dev": {"cases": 3}, "holdout": {"cases": 2}}
+
+
 # runner
 
 

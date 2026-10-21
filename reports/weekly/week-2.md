@@ -30,3 +30,10 @@ pytest → 184 passed · ruff → All checks passed!
 
 **Files**
 - changed: `reports/phases/phase-4-benchmark.md` (status approved), `reports/weekly/week-2.md`
+- Phase 5 opening answers: dashboard + core landing; no router library; self-hosted fonts; Vitest + Testing Library (decided by: Vighnesh). Pushback accepted: benchmark numbers bundled as JSON, no new API endpoint.
+- Built the dashboard, review detail, and landing page; frontend tests in `make test` and CI. Stopped the Docker frontend container (it served the old placeholder on port 5173) to run the dev server; dev preview config in `../.claude/launch.json` (outside the repo, session root).
+- Test output: backend 185 passed, frontend 4 passed, build clean. Details in `reports/phases/phase-5-frontend.md`.
+
+**Files**
+- added: `frontend/src/lib/router.tsx`, `frontend/src/components/ui/Shell.tsx`, `frontend/src/lib/benchmark.json`, `frontend/tests/unit/setup.ts`, `frontend/tests/unit/app.test.tsx`, `reports/phases/phase-5-frontend.md`
+- changed: `frontend/src/{App.tsx,main.tsx,lib/api.ts,motion/tokens.ts,styles/tokens.css,routes/*.tsx}`, `frontend/{package.json,pnpm-lock.yaml,tsconfig.json,vite.config.ts,README.md}`, `benchmark/score.py`, `backend/tests/unit/test_benchmark.py`, `Makefile`, `.github/workflows/ci.yml`, `docs/{api.md,PLAN.md}`, `CHANGELOG.md`
