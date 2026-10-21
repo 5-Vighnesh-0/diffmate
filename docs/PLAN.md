@@ -265,15 +265,28 @@ Already done in Phases 1–2: confidence filter, dedupe, comment cap; core injec
 
 **Acceptance:** Lighthouse performance 90 or higher; reduced motion verified.
 
-## Phase 6: Ship (week 5, by Nov 10)
+## Phase 6: Ship (started 2026-10-21)
 
-- [ ] README with architecture diagram and benchmark table
-- [ ] Pick a free host; deploy per `docs/runbooks/deploy.md`
-- [ ] Demo video script and recording
-- [ ] Final reviews: code review, accessibility review, deploy checklist
-- [ ] Resume bullets written from real numbers
+**Decisions (Vighnesh, 2026-10-21):** no card anywhere; a small group of users; README with diagram and resume bullets (no demo video script); hosting route A: Render free web service + Render free Key Value + Neon free Postgres + a free uptime pinger. Researched 2026-10-21: Hugging Face Docker Spaces now need a paid plan; Koyeb now asks for a card.
 
-**Acceptance:** all criteria below pass.
+**Design**
+- One container on Render runs the API, the worker, and serves the built frontend from the same origin (first-party cookies; no CORS). Render's free tier has no background workers, so the worker runs beside uvicorn; if either process exits, the container exits and Render restarts it.
+- Postgres on Neon (free, no card, does not expire; `?ssl=require`). Redis on Render Key Value (free, in memory: a restart clears sessions, quota counters and replay keys; reviews are safe in Neon; Google's own daily limit still caps spend at $0).
+- Keep-alive and health checks hit `/` (static page), never `/health`, because `/health` wakes the database and Neon's free plan allows 100 compute-hours a month.
+- Configuration in `render.yaml`; secrets entered by Vighnesh in Render, never in files.
+
+**Tasks**
+- [x] 1. GitHub App key from a secret env var (`GITHUB_APP_PRIVATE_KEY`) as well as a file; test
+- [ ] 2. API serves the built frontend for `/`, `/dashboard`, `/dashboard/runs/{id}` and `/assets`, with a page CSP (scripts, styles, fonts only from self); the JSON CSP stays `default-src 'none'`; tests
+- [ ] 3. One image: frontend build stage in `backend/Dockerfile` (context = repo root), `start.sh` runs migrations, uvicorn and the worker; compose keeps separate services
+- [ ] 4. `render.yaml` (web service + Key Value, free plans), `.env.example` updated
+- [ ] 5. Runbook `docs/runbooks/deploy.md`: Vighnesh's steps (GitHub repo and push, Neon, Render blueprint, secrets, GitHub App URLs, uptime pinger, make the App public)
+- [ ] 6. Client IP on Render: test whether `X-Forwarded-For` can be spoofed after the first deploy; pick the header; threat model rows
+- [ ] 7. Full-history gitleaks before the first push; push only with Vighnesh's approval
+- [ ] 8. Live checks on the hosted URL: webhook, review posted, login, dashboard, Lighthouse
+- [ ] 9. README with architecture diagram and benchmark table; resume bullets from real numbers; ADR 0004 (hosting)
+
+**Acceptance:** final criteria below pass on the hosted URL.
 
 ## Final acceptance criteria
 
