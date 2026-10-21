@@ -1,7 +1,8 @@
 import { motion } from "motion/react";
 import { useEffect, useState } from "react";
 import { Shell } from "../components/ui/Shell";
-import { api, type Run } from "../lib/api";
+import bench from "../lib/benchmark.json";
+import { api, type FeedbackSummary, type Run } from "../lib/api";
 import { Link } from "../lib/router";
 
 // Plain-language status, written for people who have never used GitHub.
@@ -65,9 +66,10 @@ function Intro() {
   );
 }
 
-function Summary({ runs, more }: { runs: Run[]; more: boolean }) {
+function Summary({ runs, more, votes }: { runs: Run[]; more: boolean; votes: FeedbackSummary | null }) {
   const notes = runs.reduce((n, r) => n + r.findings, 0);
   const waiting = runs.filter((r) => r.status === "queued" || r.status === "running").length;
+  const rated = votes ? votes.useful + votes.not_useful : 0;
   const plus = more ? "+" : "";
   return (
     <dl className="summary">
@@ -89,6 +91,15 @@ function Summary({ runs, more }: { runs: Run[]; more: boolean }) {
         <dd>{waiting}</dd>
         <dt>waiting or in progress</dt>
       </div>
+      <div>
+        <dd>{rated ? `${Math.round((votes!.useful / rated) * 100)}%` : "–"}</dd>
+        <dt>{rated ? `of your ${rated} rated notes were useful` : "rate a note to see how useful DiffMate is"}</dt>
+      </div>
+      <p className="summary-note">
+        The last number is how often DiffMate was right on your own code, from your Useful and Not useful answers. On
+        its benchmark of 60 test changes, {Math.round((bench.holdout.setups.filtered.precision ?? 0) * 100)}% of its
+        notes were right.
+      </p>
     </dl>
   );
 }
@@ -97,6 +108,13 @@ function Runs() {
   const [runs, setRuns] = useState<Run[] | null>(null);
   const [cursor, setCursor] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [votes, setVotes] = useState<FeedbackSummary | null>(null);
+
+  useEffect(() => {
+    api<FeedbackSummary>("/api/feedback/summary")
+      .then(setVotes)
+      .catch(() => setVotes(null)); // the score is extra; the list still works without it
+  }, []);
 
   function load(after?: number) {
     api<{ items: Run[]; next_cursor: number | null }>(`/api/runs?limit=20${after ? `&cursor=${after}` : ""}`)
@@ -122,7 +140,7 @@ function Runs() {
         </p>
       ) : (
         <>
-          <Summary runs={runs} more={cursor !== null} />
+          <Summary runs={runs} more={cursor !== null} votes={votes} />
           <ul className="review-cards">
             {runs.map((r, i) => (
               <motion.li

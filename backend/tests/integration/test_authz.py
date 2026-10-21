@@ -140,3 +140,19 @@ async def test_a_repo_i_cannot_access_in_my_own_installation_is_hidden(world):
         headers={"X-CSRF-Token": csrf},
     )
     assert r.status_code == 404
+
+
+async def test_feedback_summary_counts_only_my_votes_and_follows_changes(world):
+    client, csrf, (_, my_finding), _, _ = world
+    vote = f"/api/findings/{my_finding}/feedback"
+
+    assert (await client.get("/api/feedback/summary")).json() == {"useful": 0, "not_useful": 0}
+
+    await client.post(vote, json={"verdict": "accept"}, headers={"X-CSRF-Token": csrf})
+    assert (await client.get("/api/feedback/summary")).json() == {"useful": 1, "not_useful": 0}
+
+    await client.post(vote, json={"verdict": "reject"}, headers={"X-CSRF-Token": csrf})
+    assert (await client.get("/api/feedback/summary")).json() == {"useful": 0, "not_useful": 1}
+
+    client.cookies.clear()
+    assert (await client.get("/api/feedback/summary")).status_code == 401

@@ -65,6 +65,10 @@ Ordered steps: `step_no, tool, summary, tokens_in, tokens_out, duration_ms`. Sum
 
 Body `{"verdict": "accept" | "reject"}` (other values: `422`). Requires the `X-CSRF-Token` header (`403` otherwise). One vote per user, and a later vote replaces it. Returns `204`.
 
+### `GET /api/feedback/summary`
+
+The signed-in user's own votes, limited to repos they can access: `{"useful": n, "not_useful": m}`. Shown as "x% of your rated notes were useful" on the reviews list and after each vote.
+
 ### Benchmark numbers (no endpoint)
 
 The landing page's results are bundled at build time from `frontend/src/lib/benchmark.json`, which `make bench-score` writes. They change only when the benchmark is re-run, so a live endpoint was dropped in Phase 5 (decided by: Vighnesh, 2026-10-21).

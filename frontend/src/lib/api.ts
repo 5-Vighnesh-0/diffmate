@@ -47,6 +47,15 @@ export type TraceStep = {
   duration_ms: number;
 };
 
+export type FeedbackSummary = { useful: number; not_useful: number };
+
+// "4 of 5 notes useful (80%)", or null before any vote.
+export function usefulLine(s: FeedbackSummary): string | null {
+  const total = s.useful + s.not_useful;
+  if (!total) return null;
+  return `${s.useful} of your ${total} rated ${total === 1 ? "note" : "notes"} useful (${Math.round((s.useful / total) * 100)}%)`;
+}
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,
