@@ -59,6 +59,10 @@ Vighnesh signed in with GitHub in Firefox and used the dashboard: all features w
 - Review page: intro (found vs posted vs held back), plain explanation of Useful / Not useful (saved only in DiffMate, used to measure accuracy, changeable), "Saved" confirmation and "You have rated n of m", link to the pull request on GitHub, "What next?" (push a fix, a new review appears), comment cards and steps arrive in a stagger.
 - Page changes fade in (CSS, no exit wait; disabled with reduced motion). A first version with motion's AnimatePresence "wait" left the old page on screen whenever animation frames were paused (seen in the test browser); replaced with the CSS fade.
 
+- Sign-in screen (Vighnesh: "what am I supposed to do?"): headline, purpose, button above the fold, three-step "What happens next", privacy note matching the real login (token never stored, never posts as you, 8 h), and a real recorded review as the example.
+
 ## Open for the gate
+
+- The App's public install link (`github.com/apps/<name>`) for the sign-in screen and the landing close.
 
 - Vighnesh to look at the new explanations and animation after signing in.

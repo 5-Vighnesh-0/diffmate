@@ -1,6 +1,7 @@
 import { type ReactNode, useEffect, useState } from "react";
-import { api, ApiError, LOGIN_URL, type Me, post } from "../../lib/api";
+import { api, ApiError, type Me, post } from "../../lib/api";
 import { Link, navigate } from "../../lib/router";
+import { SignIn } from "./SignIn";
 
 type State = { kind: "loading" } | { kind: "signed-out" } | { kind: "error"; message: string } | { kind: "ok"; me: Me };
 
@@ -41,14 +42,7 @@ export function Shell({ children }: { children: (me: Me) => ReactNode }) {
       </header>
       <main style={{ padding: "1.5rem 0 4rem" }}>
         {state.kind === "loading" && <p>Loading…</p>}
-        {state.kind === "signed-out" && (
-          <div className="notice">
-            <p>Sign in with the GitHub account that installed DiffMate to see its reviews.</p>
-            <a className="button" href={LOGIN_URL}>
-              Sign in with GitHub
-            </a>
-          </div>
-        )}
+        {state.kind === "signed-out" && <SignIn />}
         {state.kind === "error" && (
           <p className="notice" role="alert">
             Could not reach the DiffMate API: {state.message}. Check that the backend is running, then reload.
