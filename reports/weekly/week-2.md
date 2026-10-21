@@ -22,3 +22,11 @@ pytest → 184 passed · ruff → All checks passed!
 - Write the Phase 4 report now; add the 3.8 Flash bonus when it finishes (decided by: Vighnesh)
 
 **Quota:** Flash Lite 65 of 400; 3.8 Flash at its free limit for today.
+
+## Day 5: 2026-10-21 (Phase 4 gate, Phase 5 start)
+
+**Decisions**
+- Phase 4 approved; 30-55% recall accepted for v1; Phase 5 started (decided by: Vighnesh)
+
+**Files**
+- changed: `reports/phases/phase-4-benchmark.md` (status approved), `reports/weekly/week-2.md`

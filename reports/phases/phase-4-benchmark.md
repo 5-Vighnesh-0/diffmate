@@ -1,7 +1,9 @@
 # Phase 4: Benchmark
 
-**Dates:** 2026-10-07 to 2026-10-17
-**Status:** awaiting approval
+**Dates:** 2026-10-07 to 2026-10-21
+**Status:** approved (2026-10-21) by Vighnesh
+
+**Gate decisions (Vighnesh, 2026-10-21):** Phase 4 approved; recall of 30-55% accepted for v1; 3.8 Flash bonus continues and is added when done; no extra code review; start Phase 5.
 
 ## Decisions (Vighnesh, 2026-10-07)
 
