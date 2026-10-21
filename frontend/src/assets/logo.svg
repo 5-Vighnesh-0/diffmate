@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="DiffMate">
+  <!-- Three lines of code; the middle one is the line DiffMate caught (the red bar). -->
+  <rect width="64" height="64" fill="#0A0A0A"/>
+  <rect x="12" y="13" width="28" height="6" fill="#F3F0E8"/>
+  <rect x="0" y="26" width="64" height="12" fill="#E5120B"/>
+  <rect x="12" y="29" width="38" height="6" fill="#FFFFFF"/>
+  <rect x="12" y="45" width="20" height="6" fill="#F3F0E8"/>
+</svg>

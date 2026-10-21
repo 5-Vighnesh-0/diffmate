@@ -106,7 +106,7 @@ Render's free server sleeps after 15 minutes without visits and takes about a mi
 1. Open `https://<your address>`, then **Dashboard, Sign in with GitHub**.
 2. Open or update a pull request in a repository where the App is installed. The review should appear on GitHub and in the dashboard within a few minutes.
 
-### 7. Let others use it (when ready)
+### 7. Let others use it (done 2026-10-21: https://github.com/apps/diffmate-vighnesh)
 
 1. GitHub App settings, **Advanced, Make public**.
 2. Send Claude the App's public page (`https://github.com/apps/<name>`) to add an install link to the site.

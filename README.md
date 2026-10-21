@@ -2,7 +2,7 @@
 
 An AI reviewer for GitHub pull requests. It reads each change and leaves at most five inline comments, only where it finds a likely bug or security problem. It never changes your code, and it runs entirely on free tiers: $0.
 
-**Live:** [diffmate-kgzb.onrender.com](https://diffmate-kgzb.onrender.com) · [![CI](https://github.com/5-Vighnesh-0/diffmate/actions/workflows/ci.yml/badge.svg)](https://github.com/5-Vighnesh-0/diffmate/actions/workflows/ci.yml)
+**Live:** [diffmate-kgzb.onrender.com](https://diffmate-kgzb.onrender.com) · **[Install the GitHub App](https://github.com/apps/diffmate-vighnesh/installations/new)** (public repositories only) · [![CI](https://github.com/5-Vighnesh-0/diffmate/actions/workflows/ci.yml/badge.svg)](https://github.com/5-Vighnesh-0/diffmate/actions/workflows/ci.yml)
 
 ## Results at a glance
 

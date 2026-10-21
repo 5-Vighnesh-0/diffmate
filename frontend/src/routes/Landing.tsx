@@ -9,7 +9,9 @@ import {
 } from "motion/react";
 import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
 import bench from "../lib/benchmark.json";
+import logo from "../assets/logo.svg";
 import demo from "../lib/demo.json";
+import { INSTALL_URL } from "../lib/api";
 import { Link } from "../lib/router";
 
 // Live-surface page (scrollcraft/builds/diffmate-landing/BRIEF.md): every comment, step and
@@ -255,7 +257,10 @@ export function Landing() {
   return (
     <>
       <nav className="chrome" aria-label="Page">
-        <span className="wordmark">DiffMate</span>
+        <span className="wordmark">
+          <img src={logo} alt="" width={22} height={22} />
+          DiffMate
+        </span>
         <a href="#review">Review</a>
         <a href="#numbers">Numbers</a>
         <a href="#try">Try it</a>
@@ -277,7 +282,13 @@ export function Landing() {
         <PlantABug />
         <footer className="act close">
           <p>
-            Install it on a repository, open a pull request, and the review appears there.{" "}
+            <a className="button" href={INSTALL_URL}>
+              Install on GitHub
+            </a>
+          </p>
+          <p>
+            Pick your repositories, open a pull request, and the review appears there within a minute or two. Public
+            repositories only: DiffMate uses a free AI service that may learn from the code it reads.{" "}
             <Link href="/dashboard">Open the dashboard</Link>
           </p>
         </footer>
