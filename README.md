@@ -129,4 +129,4 @@ Python 3.12, FastAPI, SQLAlchemy 2 with Alembic, arq on Redis, Postgres, Gemini 
 
 ## License
 
-Not chosen yet. Benchmark cases contain excerpts of open-source code under their own licenses: [benchmark/cases/THIRD_PARTY.md](benchmark/cases/THIRD_PARTY.md).
+[MIT](LICENSE). The benchmark cases contain excerpts of other open-source projects, which stay under their own licenses: [benchmark/cases/THIRD_PARTY.md](benchmark/cases/THIRD_PARTY.md).
