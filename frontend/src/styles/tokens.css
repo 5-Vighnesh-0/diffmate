@@ -87,14 +87,15 @@ pre,
   cursor: default;
 }
 
-/* Page change: fade in. Ends at transform none, so sticky pinning works after 0.25s. */
+/* Page change: a short slide up. No opacity: content that starts invisible does not count as
+   painted, and Lighthouse saw no first paint at all on phones. Ends at transform none, so sticky
+   pinning works after 0.25s. */
 .page-in {
   animation: page-in 0.25s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 @keyframes page-in {
   from {
-    opacity: 0;
     transform: translateY(8px);
   }
 }

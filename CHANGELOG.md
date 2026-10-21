@@ -14,11 +14,15 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: no
 
 ### Fixed
 
+- Pages no longer fade in from invisible: on phones Lighthouse saw no first paint at all. They now slide in without changing opacity.
+- Frontend pages answer HEAD, so uptime monitors see the site as up.
+- certifi updated to 2026.10.19 (PYSEC-2026-4320).
 - The agent's last step now requires a `submit_findings` call (Gemini `tool_choice: "any"`); before, 10 of 48 benchmark runs ended with no answer.
 - `/health` checks time out after 2 s; worker retries GitHub 403 rate limits and stops wasting the last retry; duplicate commits answer 200 "duplicate".
 
 ### Added
 
+- Phase 6: hosted at $0 with no card on Render (one container: API, worker, frontend) with Render Key Value, Neon Postgres and an UptimeRobot keep-alive (`render.yaml`, ADR 0004, deploy runbook). Public repository with an MIT license and a rewritten README. Useful score from the user's own votes (`GET /api/feedback/summary`).
 - Dashboard explains itself: what a review is, statuses, what Useful / Not useful does, "Saved" confirmation, link to the pull request, what to do next; rows, comments and steps animate in; pages fade in.
 - Landing rebuilt with scroll-craft's method: a brutalist live surface where scroll types a real pull request and DiffMate's real recorded review lands on the bug, real benchmark numbers, and a "plant a bug" input showing four real recorded reviews (`benchmark/demo.py`).
 - Phase 5: dashboard (reviews list, review detail with findings, Useful / Not useful votes, agent trace) and landing page (tilting hero diff card, pinned five-step pipeline story, results from the real benchmark). Reduced motion and phones get a stacked, still layout. History API routing, self-hosted fonts, Vitest tests in `make test` and CI.
