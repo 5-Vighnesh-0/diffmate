@@ -57,7 +57,8 @@ function DiffCard({ marked = false }: { marked?: boolean }) {
             {marked && l.marked && (
               <motion.i
                 className="marker"
-                aria-label="Finding"
+                role="img"
+                aria-label="Finding on this line"
                 initial={{ scale: 0 }}
                 whileInView={{ scale: 1 }}
                 viewport={{ once: true }}

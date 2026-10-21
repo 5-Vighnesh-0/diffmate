@@ -37,3 +37,4 @@ pytest → 184 passed · ruff → All checks passed!
 **Files**
 - added: `frontend/src/lib/router.tsx`, `frontend/src/components/ui/Shell.tsx`, `frontend/src/lib/benchmark.json`, `frontend/tests/unit/setup.ts`, `frontend/tests/unit/app.test.tsx`, `reports/phases/phase-5-frontend.md`
 - changed: `frontend/src/{App.tsx,main.tsx,lib/api.ts,motion/tokens.ts,styles/tokens.css,routes/*.tsx}`, `frontend/{package.json,pnpm-lock.yaml,tsconfig.json,vite.config.ts,README.md}`, `benchmark/score.py`, `backend/tests/unit/test_benchmark.py`, `Makefile`, `.github/workflows/ci.yml`, `docs/{api.md,PLAN.md}`, `CHANGELOG.md`
+- Deleted 15 empty placeholder files (approved by Vighnesh). Lighthouse (approved; one-off `npx lighthouse@12`, Playwright's Chromium): landing performance 95 / accessibility 100 after fixing the marker's ARIA role; dashboard 97 / 100.
