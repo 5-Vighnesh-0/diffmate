@@ -1,7 +1,7 @@
 # Phase 5: Frontend
 
-**Dates:** 2026-10-21 to (open)
-**Status:** in progress (live check and Lighthouse pending)
+**Dates:** 2026-10-21
+**Status:** awaiting approval
 
 ## Decisions (Vighnesh, 2026-10-21)
 
@@ -63,8 +63,20 @@ Vighnesh signed in with GitHub in Firefox and used the dashboard: all features w
 
 - Plain language for beginners (Vighnesh): reviews list explains how a review happens, counts reviews and notes, shows each review as a sentence, and defines the three words people meet; a review explains each note without jargon and lists the AI's steps in words.
 
+## Acceptance checks at the gate (with output)
+
+```
+make test          → backend 185 passed · frontend 6 passed
+ruff               → clean
+pnpm build / audit → built · No known vulnerabilities found
+Lighthouse 12      → landing 94 perf / 100 a11y · dashboard (sign-in screen) 96 / 100
+```
+
+- [x] Lighthouse performance 90 or higher
+- [x] Reduced motion verified (test: still layout with the whole review visible; browser check at 375px)
+- [x] Live check by Vighnesh (signed in, voted, gave feedback; all feedback addressed)
+
 ## Open for the gate
 
-- The App's public install link (`github.com/apps/<name>`) for the sign-in screen and the landing close.
-
-- Vighnesh to look at the new explanations and animation after signing in.
+- The App's public install link (`github.com/apps/<name>`): needed in Phase 6 to let others install DiffMate.
+- Not verified: a real phone; scroll-craft's own screenshot harness.
