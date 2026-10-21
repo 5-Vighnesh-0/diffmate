@@ -1,0 +1,58 @@
+# Render Blueprint: DiffMate on free plans, $0 (docs/PLAN.md Phase 6, docs/runbooks/deploy.md).
+# Secrets are `sync: false`: Render asks for them once, in its dashboard. Never put values here.
+services:
+  - type: web
+    name: diffmate
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: .
+    dockerCommand: ./start.sh # migrations, then API + review worker in one container
+    # "/" is a static page. Never /health here: it wakes the Neon database, and Neon's free
+    # plan allows 100 compute-hours a month.
+    healthCheckPath: /
+    autoDeployTrigger: commit
+    envVars:
+      - key: DATABASE_URL # Neon, direct (not pooled) endpoint: postgresql+asyncpg://...?ssl=require
+        sync: false
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: diffmate-redis
+          property: connectionString
+      - key: PUBLIC_API_URL # this service's own address, e.g. https://diffmate.onrender.com
+        sync: false
+      - key: FRONTEND_ORIGIN # the same address as PUBLIC_API_URL
+        sync: false
+      - key: FRONTEND_DIST
+        value: /app/frontend-dist
+      # CLIENT_IP_HEADER: not set yet, so the default (cf-connecting-ip) applies. Phase 6 task 6
+      # tests on Render whether a visitor can spoof it, then sets the right header here.
+      - key: GITHUB_WEBHOOK_SECRET
+        sync: false
+      - key: GITHUB_APP_ID
+        sync: false
+      - key: GITHUB_APP_PRIVATE_KEY # the PEM itself; one line with \n is fine
+        sync: false
+      - key: GITHUB_OAUTH_CLIENT_ID
+        sync: false
+      - key: GITHUB_OAUTH_CLIENT_SECRET
+        sync: false
+      - key: GEMINI_API_KEY # from a Google project with no billing account (ADR 0003)
+        sync: false
+      - key: LLM_PROVIDER
+        value: gemini
+      - key: LLM_MODEL
+        value: gemini-3.5-flash-lite
+      - key: LLM_DAILY_REQUEST_CAP
+        value: "400"
+      - key: LLM_REQUESTS_PER_MINUTE
+        value: "12"
+
+  - type: keyvalue
+    name: diffmate-redis
+    plan: free
+    region: oregon
+    ipAllowList: [] # no outside access: only services in this Render account can connect
+    maxmemoryPolicy: noeviction # never silently drop queued jobs or sessions
