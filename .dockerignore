@@ -1,0 +1,17 @@
+# Allow-list: the build context is the repo root, so exclude everything (above all .env)
+# and let in only what backend/Dockerfile copies.
+**
+!backend/pyproject.toml
+!backend/uv.lock
+!backend/alembic.ini
+!backend/alembic
+!backend/app
+!backend/start.sh
+!frontend/package.json
+!frontend/pnpm-lock.yaml
+!frontend/index.html
+!frontend/vite.config.ts
+!frontend/tsconfig.json
+!frontend/src
+**/node_modules
+**/__pycache__

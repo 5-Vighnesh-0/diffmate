@@ -29,7 +29,7 @@ services:
 
   backend:
     restart: unless-stopped
-    build: ./backend
+    build: { context: ., dockerfile: backend/Dockerfile }
     # Each service gets only the secrets it uses (no env_file).
     environment:
       <<: *backend-env
@@ -48,7 +48,7 @@ services:
 
   worker:
     restart: unless-stopped
-    build: ./backend
+    build: { context: ., dockerfile: backend/Dockerfile }
     command: ["arq", "app.queue.worker.WorkerSettings"]
     environment:
       <<: *backend-env
