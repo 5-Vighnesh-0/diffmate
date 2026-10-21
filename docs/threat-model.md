@@ -17,7 +17,7 @@ Status: reviewed against the code at the end of Phase 3 (2026-10-07), including 
 2. PR content → agent: always untrusted, including file names, code, tool output, and linter messages.
 3. LLM output → GitHub comments and the dashboard: untrusted; schema-validated and rendered as text.
 4. Browser → dashboard API: untrusted until a session exists; every row is authorized by installation.
-5. Internet → laptop: only through the cloudflared tunnel; every published port binds to 127.0.0.1.
+5. Internet → server: on the laptop only through the cloudflared tunnel (every published port binds to 127.0.0.1); hosted, only through Render's HTTPS edge to one web service (Redis has an empty IP allow-list; Postgres on Neon needs TLS and a password).
 6. Worker → internet: GitHub API, codeload, and the Gemini API only.
 
 ## Threats and controls
@@ -27,7 +27,7 @@ Status: reviewed against the code at the end of Phase 3 (2026-10-07), including 
 | 1 | Forged webhook (S) | HMAC SHA-256, constant-time byte compare; 401 | `security/test_webhook.py`, `unit/test_signature.py` |
 | 2 | Replayed webhook, including under a new delivery ID (S) | Replay key = the signature, 7-day TTL; only signed requests are recorded | `test_replayed_delivery_is_ignored`, `test_same_signed_body_with_a_new_delivery_id_is_ignored` |
 | 3 | Oversized or chunked bodies (D) | 1 MiB limit while streaming; 413 | `test_oversized_body_gets_413`, `test_oversized_chunked_body_without_length_gets_413` |
-| 4 | Request floods (D) | Redis rate limit per client IP: webhook 120/min, dashboard 60/min; 429 + Retry-After; counter keys always carry a TTL | `security/test_headers.py` (incl. Retry-After and TTL) |
+| 4 | Request floods (D) | Redis rate limit per client IP: webhook 120/min, dashboard 60/min; 429 + Retry-After; counter keys always carry a TTL. Client IP from `CF-Connecting-IP`, set by Cloudflare (laptop tunnel, and in front of Render); on Render a client-sent value is rejected by Cloudflare (error 1000), tested live 2026-10-21 | `security/test_headers.py` (incl. Retry-After and TTL) |
 | 5 | Payload fields steering GitHub API paths (T) | Repo name and SHA must match strict patterns; 400 | `test_suspicious_repo_or_sha_gets_400_and_no_job` |
 | 6 | Prompt injection in title, body, diff, file names, code, tool output (T, E) | Everything PR-derived is wrapped in `<untrusted_pr_content>`, delimiter look-alikes in any case are defused; system prompt says it is data | `unit/test_loop.py` (markers, tag variants, file names, tool output); live suite `benchmark/injection/` (8/8 pass on Flash Lite, 2026-10-07) |
 | 7 | An injected model trying to act (E) | Only 4 read-only tools + `submit_findings`; unknown tools refused; max 5 calls per step; findings schema with `extra="forbid"`; diff-line filter; cap 5; reviews are `COMMENT` only | `integration/test_injection_pipeline.py`, `unit/test_tools.py`, `unit/test_filters.py` |

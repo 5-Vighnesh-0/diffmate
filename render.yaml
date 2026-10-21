@@ -27,8 +27,9 @@ services:
         sync: false
       - key: FRONTEND_DIST
         value: /app/frontend-dist
-      # CLIENT_IP_HEADER: not set yet, so the default (cf-connecting-ip) applies. Phase 6 task 6
-      # tests on Render whether a visitor can spoof it, then sets the right header here.
+      # CLIENT_IP_HEADER: the default (cf-connecting-ip) is right on Render. Tested 2026-10-21:
+      # Cloudflare in front of Render rejects a client-sent CF-Connecting-IP (error 1000), and the
+      # dashboard limit allowed exactly 60 requests a minute, then 429 (docs/threat-model.md #4).
       - key: GITHUB_WEBHOOK_SECRET
         sync: false
       - key: GITHUB_APP_ID
