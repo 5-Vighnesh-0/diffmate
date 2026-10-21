@@ -27,7 +27,7 @@ Vighnesh asked to use scroll-craft. Pushback accepted: its paid image generation
 ## Checks so far
 
 ```
-make test   → backend 185 passed · frontend 5 passed
+make test   → backend 185 passed · frontend 5 passed (vote test now also checks the explanation, the count, the GitHub link and "Saved")
 pnpm build  → built, no type errors
 ```
 
@@ -52,6 +52,13 @@ Browser checks (built-in browser): desktop and 375px phone; tilt, pinned wipes, 
 
 Cleanup (approved by Vighnesh): 15 empty placeholder files from Phase 0 deleted with `git rm` after confirming each was empty and unreferenced.
 
+## Live check and follow-up (Vighnesh, 2026-10-21)
+
+Vighnesh signed in with GitHub in Firefox and used the dashboard: all features work, colours and the scroll-typing landing kept as they are. Feedback: after signing in it does not explain what is happening ("what am I supposed to do"), and it could use more animation. Changes:
+- Reviews list: intro (what a review is, where it comes from), status legend, rows arrive in a short stagger.
+- Review page: intro (found vs posted vs held back), plain explanation of Useful / Not useful (saved only in DiffMate, used to measure accuracy, changeable), "Saved" confirmation and "You have rated n of m", link to the pull request on GitHub, "What next?" (push a fix, a new review appears), comment cards and steps arrive in a stagger.
+- Page changes fade in (CSS, no exit wait; disabled with reduced motion). A first version with motion's AnimatePresence "wait" left the old page on screen whenever animation frames were paused (seen in the test browser); replaced with the CSS fade.
+
 ## Open for the gate
 
-- Live check: sign in and vote on a real review (needs Vighnesh's GitHub login; the built-in browser cannot sign in for you).
+- Vighnesh to look at the new explanations and animation after signing in.

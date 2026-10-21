@@ -1,4 +1,4 @@
-import { motion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
 import { Shell } from "../components/ui/Shell";
 import { api, type Finding, type Me, post, type Run, type TraceStep, type Verdict } from "../lib/api";
@@ -23,6 +23,7 @@ function Review({ id, me }: { id: number; me: Me }) {
   const [trace, setTrace] = useState<TraceStep[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [voteError, setVoteError] = useState<string | null>(null);
+  const [saved, setSaved] = useState<number | null>(null); // finding id whose vote just saved
 
   useEffect(() => {
     Promise.all([api<Detail>(`/api/runs/${id}`), api<TraceStep[]>(`/api/runs/${id}/trace`)])
@@ -41,32 +42,66 @@ function Review({ id, me }: { id: number; me: Me }) {
       return;
     }
     setVoteError(null);
+    setSaved(f.id);
     setRun((r) => r && { ...r, findings: r.findings.map((x) => (x.id === f.id ? { ...x, my_verdict: verdict } : x)) });
   }
 
   if (error) return <p className="notice" role="alert">{error}</p>;
   if (!run) return <p>Loading review…</p>;
 
+  const rated = run.findings.filter((f) => f.my_verdict).length;
+  const posted = run.findings.filter((f) => f.status === "posted").length;
+  const prUrl = `https://github.com/${run.repo}/pull/${run.pr}`;
+
   return (
-    <>
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
       <p>
         <Link href="/dashboard">All reviews</Link>
       </p>
       <h1 style={{ fontSize: "3rem" }}>
         {run.repo} #{run.pr}
       </h1>
-      <p>{run.title}</p>
+      <p>
+        {run.title}.{" "}
+        <a href={prUrl} target="_blank" rel="noreferrer">
+          Open the pull request on GitHub
+        </a>
+      </p>
       <p className="mono">
         Commit {run.commit_sha.slice(0, 7)}, {run.llm_requests} AI requests, estimated ${run.est_cost_usd.toFixed(4)} at
         list price (free tier: $0)
       </p>
       {run.error && <p className="notice" role="alert">{run.error}</p>}
 
-      <h2 style={{ fontSize: "2rem", margin: "2rem 0 1rem" }}>Comments</h2>
+      <section className="intro">
+        <h2>Comments</h2>
+        <p>
+          DiffMate found {run.findings.length} possible {run.findings.length === 1 ? "problem" : "problems"} in this
+          commit and posted {posted} of them as comments on the pull request. The rest were held back by its filters
+          (each says why), so they never reached GitHub.
+        </p>
+        {run.findings.length > 0 && (
+          <p>
+            <strong>Was each comment right?</strong> Choose <em>Useful</em> if it points at a real problem, or{" "}
+            <em>Not useful</em> if it is wrong or noise. Your answer is saved only in DiffMate, never on GitHub, and is
+            used to measure how often DiffMate is right. You can change it any time.
+          </p>
+        )}
+      </section>
       {voteError && <p className="notice" role="alert">{voteError}</p>}
-      {run.findings.length === 0 && <p>DiffMate found nothing worth a comment in this pull request.</p>}
-      {run.findings.map((f) => (
-        <article className="finding" key={f.id}>
+      {run.findings.length > 0 && (
+        <p className="mono" aria-live="polite">
+          You have rated {rated} of {run.findings.length}.
+        </p>
+      )}
+      {run.findings.map((f, i) => (
+        <motion.article
+          className="finding"
+          key={f.id}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 + i * 0.06, duration: 0.25 }}
+        >
           <p className="meta mono">
             {f.file}:{f.line}, {f.category}, {f.severity} severity, {Math.round(f.confidence * 100)}% confident.{" "}
             {DROPPED[f.status] ?? f.status}
@@ -90,11 +125,28 @@ function Review({ id, me }: { id: number; me: Me }) {
             >
               Not useful
             </motion.button>
+            <AnimatePresence>
+              {saved === f.id && (
+                <motion.span
+                  className="saved mono"
+                  role="status"
+                  initial={{ opacity: 0, x: -6 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  Saved: {f.my_verdict === "accept" ? "useful" : "not useful"}
+                </motion.span>
+              )}
+            </AnimatePresence>
           </div>
-        </article>
+        </motion.article>
       ))}
 
-      <h2 style={{ fontSize: "2rem", margin: "2rem 0 1rem" }}>What the AI did</h2>
+      <section className="intro">
+        <h2>What the AI did</h2>
+        <p>Every step DiffMate took before commenting, in order. It can only read your code, never change it.</p>
+      </section>
       {trace.length === 0 ? (
         <p>No steps recorded.</p>
       ) : (
@@ -104,7 +156,7 @@ function Review({ id, me }: { id: number; me: Me }) {
               key={s.step_no + s.summary}
               initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.04 }}
+              transition={{ delay: 0.2 + i * 0.04 }}
               style={{ marginBottom: "0.5rem", overflowWrap: "anywhere" }}
             >
               {s.summary}
@@ -113,6 +165,14 @@ function Review({ id, me }: { id: number; me: Me }) {
           ))}
         </ol>
       )}
-    </>
+
+      <section className="intro next">
+        <h2>What next?</h2>
+        <p>
+          Fix the code on GitHub and push. DiffMate reviews every new commit automatically, and the new review appears
+          in <Link href="/dashboard">your reviews</Link>.
+        </p>
+      </section>
+    </motion.div>
   );
 }
