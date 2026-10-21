@@ -116,6 +116,13 @@ pre,
   border-bottom: 1px solid var(--line);
 }
 
+.app-bar .brand,
+.chrome .wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .app-bar .brand {
   font: 400 1.6rem/1 var(--display);
   text-transform: uppercase;

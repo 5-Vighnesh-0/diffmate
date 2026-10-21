@@ -1,6 +1,7 @@
 import { type ReactNode, useEffect, useState } from "react";
 import { api, ApiError, type Me, post } from "../../lib/api";
 import { Link, navigate } from "../../lib/router";
+import logo from "../../assets/logo.svg";
 import { SignIn } from "./SignIn";
 
 type State = { kind: "loading" } | { kind: "signed-out" } | { kind: "error"; message: string } | { kind: "ok"; me: Me };
@@ -26,6 +27,7 @@ export function Shell({ children }: { children: (me: Me) => ReactNode }) {
     <div className="wrap">
       <header className="app-bar">
         <Link href="/" className="brand">
+          <img src={logo} alt="" width={24} height={24} />
           DiffMate
         </Link>
         {state.kind === "ok" && (

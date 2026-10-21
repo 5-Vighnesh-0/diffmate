@@ -1,6 +1,8 @@
 // Dashboard API client (docs/api.md). The session lives in an HttpOnly cookie the API sets.
 export const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 export const LOGIN_URL = `${API_URL}/auth/login`;
+// The public GitHub App (made public 2026-10-21). GitHub asks the visitor to sign in first.
+export const INSTALL_URL = "https://github.com/apps/diffmate-vighnesh/installations/new";
 
 export type Me = {
   user: { id: number; login: string };

@@ -1,5 +1,5 @@
 import { motion } from "motion/react";
-import { LOGIN_URL } from "../../lib/api";
+import { INSTALL_URL, LOGIN_URL } from "../../lib/api";
 import demo from "../../lib/demo.json";
 
 // A real recorded review (benchmark/demo.py), shown so visitors see what they are signing in for.
@@ -44,8 +44,12 @@ export function SignIn() {
         </ol>
         <p className="fine">
           DiffMate uses your GitHub sign-in only to see which repositories you can access. It never stores your GitHub
-          token, never posts as you, and never changes your code. You stay signed in for 8 hours. Only repositories
-          where the DiffMate GitHub App is installed have reviews.
+          token, never posts as you, and never changes your code. You stay signed in for 8 hours.
+        </p>
+        <p className="fine">
+          No reviews yet? DiffMate only reviews repositories where its GitHub App is installed.{" "}
+          <a href={INSTALL_URL}>Install DiffMate on GitHub</a>, on public repositories only: it uses a free AI
+          service that may learn from the code it reads.
         </p>
       </motion.div>
 

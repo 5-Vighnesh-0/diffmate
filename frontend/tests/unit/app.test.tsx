@@ -85,7 +85,7 @@ describe("dashboard", () => {
     const { container } = render(<RunDetail id={7} />);
 
     expect(await screen.findByText(evil)).toBeTruthy();
-    expect(container.querySelector("img")).toBeNull();
+    expect(container.querySelector(".finding img")).toBeNull(); // no image injected via AI text
 
     expect(screen.getByText(/saved only in DiffMate, never on GitHub/)).toBeTruthy();
     expect(screen.getByText("You have rated 0 of 1.")).toBeTruthy();
