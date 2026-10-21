@@ -23,6 +23,15 @@ make test   → backend 185 passed · frontend 4 passed
 pnpm build  → built, no type errors
 ```
 
+Lighthouse 12 (production build, `vite preview`, default phone settings, Playwright's Chromium):
+
+| Page | Performance | Accessibility | LCP | TBT | CLS |
+| --- | --- | --- | --- | --- | --- |
+| Landing `/` | 95 | 100 | 2.2 s | 260 ms | 0.029 |
+| Dashboard `/dashboard` (signed out) | 97 | 100 | 2.3 s | 0 ms | 0 |
+
+The first landing run scored accessibility 95: the finding marker had an `aria-label` on an element with no role. Fixed with `role="img"`; re-run gave 95 / 100 (landing LCP/TBT above are from the first run).
+
 Browser checks (built-in browser): desktop and 375px phone; tilt, pinned wipes, counters, results table; no horizontal scroll on phone; no console errors except the expected 401 from the signed-out dashboard.
 
 ## Problems found and fixed while building
@@ -33,8 +42,8 @@ Browser checks (built-in browser): desktop and 375px phone; tilt, pinned wipes, 
 - Contrast: ink on signal red is 4.2:1, below 4.5:1 for body text, so red sections use white text (4.7:1).
 - On phones the diff card overflowed and the red marker covered code; long lines now scroll inside the card and the marker sits in the gutter.
 
+Cleanup (approved by Vighnesh): 15 empty placeholder files from Phase 0 deleted with `git rm` after confirming each was empty and unreferenced.
+
 ## Open for the gate
 
 - Live check: sign in and vote on a real review (needs Vighnesh's GitHub login; the built-in browser cannot sign in for you).
-- Lighthouse performance score (needs the Lighthouse tool, a one-off download).
-- 15 empty placeholder files from Phase 0 are now unused (deleting needs approval).

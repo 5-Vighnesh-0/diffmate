@@ -259,7 +259,7 @@ Already done in Phases 1–2: confidence filter, dedupe, comment cap; core injec
 - [x] Reduced motion and phones: scenes stacked in normal flow, hero card below the headline
 - [x] Tests: signed-out prompt, LLM text stays text, votes send the CSRF token, reduced-motion layout; in `make test` and CI
 - [ ] Live check: sign in and vote on a real review (Vighnesh, in Firefox)
-- [ ] Lighthouse performance 90 or higher
+- [x] Lighthouse performance 90 or higher (landing 95, dashboard 97; accessibility 100 both)
 - Cut (DESIGN.md §8 order): T3 zoom match cut, T4 barcode bars, T6 line reveal, T9 row entry, T10 theme flip, T11 torn edge, T12 route transitions, T14 cursor chip, the "Findings on a real diff" section (covered by pipeline step 4)
 
 **Acceptance:** Lighthouse performance 90 or higher; reduced motion verified.
