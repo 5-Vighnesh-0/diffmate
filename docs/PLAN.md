@@ -277,7 +277,7 @@ Already done in Phases 1–2: confidence filter, dedupe, comment cap; core injec
 
 **Tasks**
 - [x] 1. GitHub App key from a secret env var (`GITHUB_APP_PRIVATE_KEY`) as well as a file; test
-- [ ] 2. API serves the built frontend for `/`, `/dashboard`, `/dashboard/runs/{id}` and `/assets`, with a page CSP (scripts, styles, fonts only from self); the JSON CSP stays `default-src 'none'`; tests
+- [x] 2. API serves the built frontend for `/`, `/dashboard`, `/dashboard/runs/{id}` and `/assets`, with a page CSP (scripts, styles, fonts only from self); the JSON CSP stays `default-src 'none'`; tests
 - [ ] 3. One image: frontend build stage in `backend/Dockerfile` (context = repo root), `start.sh` runs migrations, uvicorn and the worker; compose keeps separate services
 - [ ] 4. `render.yaml` (web service + Key Value, free plans), `.env.example` updated
 - [ ] 5. Runbook `docs/runbooks/deploy.md`: Vighnesh's steps (GitHub repo and push, Neon, Render blueprint, secrets, GitHub App URLs, uptime pinger, make the App public)

@@ -1,6 +1,7 @@
 import logging
 from contextlib import asynccontextmanager
 from http import HTTPStatus
+from pathlib import Path
 
 import httpx
 from arq import create_pool
@@ -8,7 +9,8 @@ from arq.connections import RedisSettings
 from fastapi import Depends, FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException
 
 from app.api import auth, findings, health, runs, webhooks
@@ -26,6 +28,11 @@ SECURITY_HEADERS = {
     "Referrer-Policy": "no-referrer",
     "Strict-Transport-Security": "max-age=31536000; includeSubDomains",  # honoured on HTTPS only
 }
+# The built frontend's pages: code, styles, fonts and API calls from this origin only.
+PAGE_CSP = (
+    "default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self'; "
+    "connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+)
 
 
 @asynccontextmanager
@@ -51,6 +58,8 @@ def create_app() -> FastAPI:
     async def security_headers(request: Request, call_next):
         response = await call_next(request)
         response.headers.update(SECURITY_HEADERS)
+        if response.headers.get("content-type", "").startswith("text/html"):
+            response.headers["Content-Security-Policy"] = PAGE_CSP
         return response
 
     def error(status: int, message: str, headers=None) -> JSONResponse:
@@ -86,7 +95,23 @@ def create_app() -> FastAPI:
     app.include_router(auth.router, dependencies=dashboard_limit)
     app.include_router(runs.router, dependencies=dashboard_limit)
     app.include_router(findings.router, dependencies=dashboard_limit)
+    if settings.frontend_dist:
+        serve_frontend(app, Path(settings.frontend_dist))
     return app
+
+
+def serve_frontend(app: FastAPI, dist: Path) -> None:
+    """Hosted: one origin for the app and the API, so the session cookie stays first-party."""
+    index = dist / "index.html"
+    app.mount("/assets", StaticFiles(directory=dist / "assets"), name="assets")
+
+    async def page() -> FileResponse:
+        return FileResponse(index, media_type="text/html")
+
+    # Only the frontend's own routes; anything else stays a JSON 404.
+    app.add_api_route("/", page, include_in_schema=False)
+    app.add_api_route("/dashboard", page, include_in_schema=False)
+    app.add_api_route("/dashboard/runs/{run_id:int}", page, include_in_schema=False)
 
 
 app = create_app()

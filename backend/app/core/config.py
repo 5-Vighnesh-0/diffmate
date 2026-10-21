@@ -37,6 +37,7 @@ class Settings(BaseSettings):
     github_oauth_client_secret: SecretStr = SecretStr("")
     public_api_url: str = "http://localhost:8000"
     frontend_origin: str = "http://localhost:5173"
+    frontend_dist: str = ""  # hosted: the built frontend, served from the API's own origin
     client_ip_header: str = "cf-connecting-ip"  # set by Cloudflare (tunnel); "" = direct peer
 
     webhook_max_body_bytes: int = 1_048_576  # 1 MiB; PR event payloads are far smaller
