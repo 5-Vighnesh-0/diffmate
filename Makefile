@@ -8,6 +8,7 @@ up: ## run the stack in the background
 
 test: ## all tests
 	cd backend && uv run pytest
+	cd frontend && pnpm test
 
 lint: ## ruff (with security rules), format check, TypeScript type check
 	cd backend && uv run ruff check . && uv run ruff format --check .

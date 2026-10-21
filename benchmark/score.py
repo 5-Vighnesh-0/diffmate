@@ -14,6 +14,7 @@ TOLERANCE = 3
 SETUPS = {"linter": "1. Linter only", "agent": "2. Agent only", "filtered": "3. Agent + filtering"}
 ROOT = Path(__file__).parent.parent
 DOCS = [ROOT / "docs" / "benchmark.md", ROOT / "README.md"]
+LANDING_JSON = ROOT / "frontend" / "src" / "lib" / "benchmark.json"  # bundled by the landing page
 
 
 def _hits(finding: dict, bug: dict, tolerance: int) -> bool:
@@ -80,19 +81,25 @@ def write_between_markers(doc: Path, key: str, text: str) -> None:
     doc.write_text(pattern.sub(lambda m: m[1] + text + m[2], content))
 
 
-def report(path: Path) -> tuple[str, str]:
-    """(marker key, Markdown) for one results file, e.g. dev-gemini-3.5-flash-lite-<sha>."""
+def report(path: Path) -> tuple[str, str, dict]:
+    """(marker key, Markdown, summaries) for one results file, e.g. dev-gemini-3.5-flash-lite-<sha>."""
     rows = [json.loads(line) for line in path.read_text().splitlines()]
     split, rest = path.stem.split("-", 1)
     model, sha = rest.rsplit("-", 1)
-    text = table({setup: summarize(rows, setup) for setup in SETUPS})
+    summaries = {setup: summarize(rows, setup) for setup in SETUPS}
+    text = table(summaries)
     requests = sum(r["llm_requests"] for r in rows)
     note = (
         f"\n\n{len(rows)} cases ({split}), `{model}`, case set `{sha}`, {requests} requests. "
         "Cost is estimated at list price; the free tier costs $0."
     )
     key = split if model == "gemini-3.5-flash-lite" else f"{split}-{model}"
-    return key, text + note
+    return key, text + note, {"cases": len(rows), "model": model, "case_set": sha, "setups": summaries}
+
+
+def write_json(path: Path, key: str, entry: dict) -> None:
+    data = json.loads(path.read_text()) if path.exists() else {}
+    path.write_text(json.dumps(data | {key: entry}, indent=2, sort_keys=True) + "\n")
 
 
 def main() -> int:
@@ -100,13 +107,15 @@ def main() -> int:
     parser.add_argument("results", type=Path)
     parser.add_argument("--write", action="store_true", help="update docs/benchmark.md and README")
     args = parser.parse_args()
-    key, text = report(args.results)
+    key, text, entry = report(args.results)
     print(text)
     if args.write:
         for doc in DOCS:
             if f"<!-- bench:{key} -->" in doc.read_text():
                 write_between_markers(doc, key, text)
                 print(f"updated {doc.relative_to(ROOT)}")
+        write_json(LANDING_JSON, key, entry)
+        print(f"updated {LANDING_JSON.relative_to(ROOT)}")
     return 0
 
 

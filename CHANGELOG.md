@@ -19,6 +19,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: no
 
 ### Added
 
+- Phase 5: dashboard (reviews list, review detail with findings, Useful / Not useful votes, agent trace) and landing page (tilting hero diff card, pinned five-step pipeline story, results from the real benchmark). Reduced motion and phones get a stacked, still layout. History API routing, self-hosted fonts, Vitest tests in `make test` and CI.
 - Phase 4: offline benchmark of 60 PR cases (35 seeded, 15 real, 10 clean; 12 held out) with a resumable runner and scorer (`make bench`, `make bench-holdout`, `make bench-score`). Flash Lite: precision 100%, recall 55% (dev) / 30% (holdout), 0 false positives per PR, estimated $0.003-0.004 per PR.
 - Phase 2: AI review agent (Gemini free tier) with four read-only tools, ruff/ESLint hints, step/token/daily/per-minute caps, findings filter, one inline review per commit, run history in Postgres (migrations 0001-0002).
 - Phase 1 backend: `/health`, `POST /webhooks/github` (HMAC check, replay protection, 1 MiB limit), arq queue with one job per commit, worker posting a test comment with retries, GitHub App JWT and repo-scoped installation tokens, JSON logs. 29 unit/security tests.

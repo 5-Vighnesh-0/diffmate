@@ -249,14 +249,18 @@ Already done in Phases 1–2: confidence filter, dedupe, comment cap; core injec
 
 **Acceptance:** results table committed, reproducible with one command (`make bench`).
 
-## Phase 5: Frontend (week 5, Nov 4 to Nov 10)
+## Phase 5: Frontend (started 2026-10-21)
 
-- [ ] Design tokens and fonts from `docs/DESIGN.md`
-- [ ] Landing page scenes and transitions (T1 to T11)
-- [ ] Dashboard: runs list, step-by-step trace, findings with accept and reject
-- [ ] Results section fed by real benchmark numbers
-- [ ] Reduced-motion layout, mobile adjustments
-- [ ] Route transitions and dashboard micro-motion (T12, T13) if time allows
+**Decisions (Vighnesh, 2026-10-21):** dashboard first; landing page uses only DESIGN.md's never-cut effects (T1 pinned scroll, T2 panel wipes, T5 tilting hero card, T7 counters), plus T8 marker pop and T13 dashboard micro-motion where they are one line each; History API routing (~30 lines, no react-router); fonts self-hosted with @fontsource; Vitest + Testing Library; benchmark numbers bundled as JSON, no `/api/benchmark/summary`.
+
+- [x] Design tokens and fonts from `docs/DESIGN.md`
+- [x] Dashboard: runs list (keyset "Show older"), run detail with findings (plain text), accept/reject with CSRF, agent trace
+- [x] Landing: hero (T5), pinned pipeline story with 5 scenes (T1, T2), results from real benchmark numbers (T7), closing CTA
+- [x] Reduced motion and phones: scenes stacked in normal flow, hero card below the headline
+- [x] Tests: signed-out prompt, LLM text stays text, votes send the CSRF token, reduced-motion layout; in `make test` and CI
+- [ ] Live check: sign in and vote on a real review (Vighnesh, in Firefox)
+- [ ] Lighthouse performance 90 or higher
+- Cut (DESIGN.md §8 order): T3 zoom match cut, T4 barcode bars, T6 line reveal, T9 row entry, T10 theme flip, T11 torn edge, T12 route transitions, T14 cursor chip, the "Findings on a real diff" section (covered by pipeline step 4)
 
 **Acceptance:** Lighthouse performance 90 or higher; reduced motion verified.
 

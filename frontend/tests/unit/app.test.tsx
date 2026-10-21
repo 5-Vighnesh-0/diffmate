@@ -1,0 +1,85 @@
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+import { LOGIN_URL } from "../../src/lib/api";
+import { Dashboard } from "../../src/routes/Dashboard";
+import { Landing } from "../../src/routes/Landing";
+import { RunDetail } from "../../src/routes/RunDetail";
+import { stubBrowser } from "./setup";
+
+const ME = { user: { id: 1, login: "octo" }, installations: [9], csrf_token: "tok", llm: { requests_today: 3, daily_cap: 400 } };
+
+function json(body: unknown, status = 200) {
+  return new Response(status === 204 ? null : JSON.stringify(body), { status });
+}
+
+// Fake API: route -> response. Records every request.
+function fakeApi(routes: Record<string, () => Response>) {
+  const fetch = vi.fn(async (url: string, init?: RequestInit) => {
+    const path = new URL(url).pathname;
+    const key = `${init?.method ?? "GET"} ${path}`;
+    if (!routes[key]) throw new Error(`unexpected ${key}`);
+    return routes[key]();
+  });
+  vi.stubGlobal("fetch", fetch);
+  return fetch;
+}
+
+describe("dashboard", () => {
+  it("asks a signed-out visitor to sign in with GitHub", async () => {
+    fakeApi({ "GET /api/me": () => json({ error: { code: "unauthorized", message: "Not signed in" } }, 401) });
+
+    render(<Dashboard />);
+
+    const link = await screen.findByRole("link", { name: "Sign in with GitHub" });
+    expect(link.getAttribute("href")).toBe(LOGIN_URL);
+  });
+
+  it("shows AI text as plain text and sends votes with the CSRF token", async () => {
+    const evil = '<img src=x onerror="alert(1)"> see https://evil.example';
+    const fetch = fakeApi({
+      "GET /api/me": () => json(ME),
+      "GET /api/runs/7": () =>
+        json({
+          id: 7, repo: "o/r", pr: 2, title: "Add calc", commit_sha: "abcdef1234", status: "done", error: null,
+          llm_requests: 4, est_cost_usd: 0.004, created_at: "2026-10-21T00:00:00Z", finished_at: null,
+          findings: [{ id: 5, file: "calc.py", line: 3, category: "bug", severity: "high", confidence: 0.9,
+            explanation: evil, status: "posted", my_verdict: null }],
+        }),
+      "GET /api/runs/7/trace": () => json([]),
+      "POST /api/findings/5/feedback": () => json(null, 204),
+    });
+
+    const { container } = render(<RunDetail id={7} />);
+
+    expect(await screen.findByText(evil)).toBeTruthy();
+    expect(container.querySelector("img")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Useful" }));
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "Useful" }).getAttribute("aria-pressed")).toBe("true"));
+    const [, init] = fetch.mock.calls.find(([url]) => String(url).endsWith("/feedback"))!;
+    expect(init?.method).toBe("POST");
+    expect((init?.headers as Record<string, string>)["X-CSRF-Token"]).toBe("tok");
+    expect(init?.credentials).toBe("include");
+    expect(JSON.parse(String(init?.body))).toEqual({ verdict: "accept" });
+  });
+});
+
+describe("landing", () => {
+  it("stacks every pipeline scene in normal flow when the visitor prefers reduced motion", () => {
+    stubBrowser({ reduceMotion: true });
+
+    render(<Landing />);
+
+    expect(screen.getByTestId("pipeline-stacked")).toBeTruthy();
+    expect(screen.queryByTestId("pipeline-pinned")).toBeNull();
+    for (const step of ["A pull request opens", "A comment lands on the line"])
+      expect(screen.getByRole("heading", { name: step })).toBeTruthy();
+  });
+
+  it("pins the pipeline story when motion is allowed", () => {
+    render(<Landing />);
+
+    expect(screen.getByTestId("pipeline-pinned")).toBeTruthy();
+  });
+});
