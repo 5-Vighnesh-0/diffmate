@@ -53,3 +53,11 @@ async def test_unknown_paths_are_not_the_app(site, path):
 
 async def test_without_a_build_only_the_api_is_served(client):
     assert (await client.get("/")).status_code == 404
+
+
+async def test_uptime_monitors_using_head_see_the_pages_as_up(site):
+    # UptimeRobot checks with HEAD by default; a 405 there reads as "down".
+    r = await site.head("/")
+
+    assert r.status_code == 200
+    assert r.text == ""
