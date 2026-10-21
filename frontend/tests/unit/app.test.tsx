@@ -52,6 +52,7 @@ describe("dashboard", () => {
           ],
           next_cursor: null,
         }),
+      "GET /api/feedback/summary": () => json({ useful: 3, not_useful: 1 }),
     });
 
     render(<Dashboard />);
@@ -61,6 +62,8 @@ describe("dashboard", () => {
     expect(screen.getByRole("heading", { name: "How a review happens" })).toBeTruthy();
     expect(screen.getByText("reviews so far")).toBeTruthy();
     expect(screen.getByText("Pull request")).toBeTruthy();
+    expect(await screen.findByText("75%")).toBeTruthy();
+    expect(screen.getByText("of your 4 rated notes were useful")).toBeTruthy();
   });
 
   it("shows AI text as plain text and sends votes with the CSRF token", async () => {
@@ -76,6 +79,7 @@ describe("dashboard", () => {
         }),
       "GET /api/runs/7/trace": () => json([]),
       "POST /api/findings/5/feedback": () => json(null, 204),
+      "GET /api/feedback/summary": () => json({ useful: 4, not_useful: 1 }),
     });
 
     const { container } = render(<RunDetail id={7} />);
@@ -91,7 +95,8 @@ describe("dashboard", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Useful" }));
 
-    expect(await screen.findByText("Saved: useful")).toBeTruthy();
+    expect(await screen.findByText(/So far you've found 4 of your 5 rated notes useful \(80%\)\./)).toBeTruthy();
+    expect(screen.getByText(/Saved: useful\./)).toBeTruthy();
     expect(screen.getByText("You have rated 1 of 1.")).toBeTruthy();
 
     await waitFor(() => expect(screen.getByRole("button", { name: "Useful" }).getAttribute("aria-pressed")).toBe("true"));

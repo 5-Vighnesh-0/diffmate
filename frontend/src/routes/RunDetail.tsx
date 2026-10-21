@@ -1,7 +1,17 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
 import { Shell } from "../components/ui/Shell";
-import { api, type Finding, type Me, post, type Run, type TraceStep, type Verdict } from "../lib/api";
+import {
+  api,
+  type FeedbackSummary,
+  type Finding,
+  type Me,
+  post,
+  type Run,
+  type TraceStep,
+  usefulLine,
+  type Verdict,
+} from "../lib/api";
 import { Link } from "../lib/router";
 
 type Detail = Omit<Run, "findings"> & { findings: Finding[] };
@@ -34,6 +44,7 @@ function Review({ id, me }: { id: number; me: Me }) {
   const [error, setError] = useState<string | null>(null);
   const [voteError, setVoteError] = useState<string | null>(null);
   const [saved, setSaved] = useState<number | null>(null); // finding id whose vote just saved
+  const [score, setScore] = useState<string | null>(null); // the user's running "useful" score
 
   useEffect(() => {
     Promise.all([api<Detail>(`/api/runs/${id}`), api<TraceStep[]>(`/api/runs/${id}/trace`)])
@@ -53,6 +64,9 @@ function Review({ id, me }: { id: number; me: Me }) {
     }
     setVoteError(null);
     setSaved(f.id);
+    api<FeedbackSummary>("/api/feedback/summary")
+      .then((s) => setScore(usefulLine(s)))
+      .catch(() => setScore(null));
     setRun((r) => r && { ...r, findings: r.findings.map((x) => (x.id === f.id ? { ...x, my_verdict: verdict } : x)) });
   }
 
@@ -149,7 +163,8 @@ function Review({ id, me }: { id: number; me: Me }) {
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.2 }}
                 >
-                  Saved: {f.my_verdict === "accept" ? "useful" : "not useful"}
+                  Saved: {f.my_verdict === "accept" ? "useful" : "not useful"}.
+                  {score && ` So far you've found ${score}.`}
                 </motion.span>
               )}
             </AnimatePresence>
