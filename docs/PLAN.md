@@ -283,7 +283,7 @@ Already done in Phases 1–2: confidence filter, dedupe, comment cap; core injec
 - [x] 5. Runbook `docs/runbooks/deploy.md`: Vighnesh's steps (GitHub repo and push, Neon, Render blueprint, secrets, GitHub App URLs, uptime pinger, make the App public)
 - [x] 6. Client IP on Render: test whether `X-Forwarded-For` can be spoofed after the first deploy; pick the header; threat model rows
 - [x] 7. Full-history gitleaks before the first push (23 commits, no leaks); push only with Vighnesh's approval
-- [ ] 8. Live checks on the hosted URL: webhook, review posted, login, dashboard, Lighthouse
+- [ ] 8. Live checks on the hosted URL: webhook and review posted (done 2026-10-21: commit 928e067 on playground PR #2 reviewed in 41 s, 2 correct comments), login and dashboard (Vighnesh), Lighthouse
 - [ ] 9. README with architecture diagram and benchmark table; resume bullets from real numbers; ADR 0004 (hosting)
 
 **Acceptance:** final criteria below pass on the hosted URL.
