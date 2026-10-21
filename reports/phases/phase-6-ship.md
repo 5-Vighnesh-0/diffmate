@@ -25,7 +25,7 @@ hosted review       → playground PR #2, commit 928e067: review posted 41 s aft
 hosted dashboard    → Vighnesh signed in, voted, saw the useful score
 spoofing test       → forged CF-Connecting-IP rejected by Cloudflare (error 1000); 60 requests/min then 429
 Lighthouse (phone)  → landing 96 perf / 100 a11y · sign-in 97 / 100 (after the fix below; local production build)
-Lighthouse (live)   → sign-in 98 / 100 / 96 best practices; landing desktop 100 / 100
+Lighthouse (live)   → after the fix, phone: landing 94 / 100 / 96, sign-in 95 / 100 / 96 (perf / a11y / best practices); landing desktop 100 / 100
 ```
 
 Final acceptance criteria (`docs/PLAN.md`):
@@ -59,11 +59,16 @@ The customized resume (one page, original layout, DiffMate first) is `~/Download
 
 ## Not done
 
-- The GitHub App is still private (`https://github.com/apps/diffmate-vighnesh` shows "private GitHub App"); making it public is Vighnesh's step, then an install link goes on the site.
-- Not verified: a real phone; Lighthouse on the live landing at phone size after the fix (needs the fix deployed).
+- Not verified: a real phone.
 - The 3.8 Flash holdout bonus stayed at 1 of 12 cases.
+
+## Launch
+
+- The GitHub App is public (Vighnesh, 2026-10-21): https://github.com/apps/diffmate-vighnesh, minimal permissions (contents read, metadata read, pull requests write; event pull_request). Install links on the sign-in screen, the landing close and the README, each saying public repositories only.
+- Logo: three code lines with a red bar across the caught one; favicon and beside the wordmark; 512 px PNG for the App at `~/Downloads/diffmate-logo.png` (Vighnesh to upload, with a one-line App description).
+- Live and verified 17:29: favicon served, install link in the live bundle, CI green on 8767f1c.
 
 ## Open for the gate
 
-- Push the fix (Render redeploys), then re-run Lighthouse on the live landing at phone size.
-- Make the App public now, or keep it private until the install link is in place?
+- Approve Phase 6 (the last phase).
+- Optional later: the 3.8 Flash holdout bonus (1 of 12 done), more recall tuning, a real-phone check.
