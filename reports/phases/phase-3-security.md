@@ -30,7 +30,7 @@ live API          → security headers present; /api/me without login → 401 {"
 
 - [x] Security test suite green
 - [x] Live injection suite passes
-- [x] CI audits green on GitHub (first green run 2026-10-21, commit 1f9bedd)
+- [x] CI audits green on GitHub (first green run 2026-10-21, commit cc81f41)
 - [x] Live login (2026-10-07 13:53 UTC): `login 5-Vighnesh-0 (1 installations, 1 repos)`; `/api/me` shows user, installation 168702940, 0/16 requests; reused callback links rejected ("unknown or reused state")
 
 ## Independent review (subagent) and actions

@@ -66,7 +66,7 @@ The customized resume (one page, original layout, DiffMate first) is `~/Download
 
 - The GitHub App is public (Vighnesh, 2026-10-21): https://github.com/apps/diffmate-vighnesh, minimal permissions (contents read, metadata read, pull requests write; event pull_request). Install links on the sign-in screen, the landing close and the README, each saying public repositories only.
 - Logo: three code lines with a red bar across the caught one; favicon and beside the wordmark; 512 px PNG for the App at `~/Downloads/diffmate-logo.png` (Vighnesh to upload, with a one-line App description).
-- Live and verified 17:29: favicon served, install link in the live bundle, CI green on 8767f1c.
+- Live and verified 17:29: favicon served, install link in the live bundle, CI green on cd6594e.
 
 ## Open for the gate
 

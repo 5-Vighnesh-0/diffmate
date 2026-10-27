@@ -25,7 +25,10 @@ vitest → 6 passed (frontend unchanged)
 ```
 
 **Blockers / open questions**
-- Not pushed yet: a push redeploys Render (needs Vighnesh's yes).
+- None. Push approved by Vighnesh.
+
+**History rewrite (approved by Vighnesh, force-pushed)**
+- Removed the `Co-Authored-By: Claude` line from all 37 earlier commit messages (`git filter-branch --msg-filter`); file contents unchanged, every commit ID changed. Commit IDs quoted in `reports/` updated to the new ones. Old history kept locally as branch `backup-before-rewrite`.
 
 **Next**
 - Push after approval; then check live `/health` ok and that a private-repo PR gets no review.

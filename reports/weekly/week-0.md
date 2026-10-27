@@ -291,7 +291,7 @@ ruff → All checks passed! · pytest → 181 passed
 
 **Quota used:** 0 Gemini requests.
 - Spot-check: Vighnesh asked Claude to do it. Instead of re-reading its own labels, Claude ran each of the 5 random cases' buggy code: 54 (`TypeError` on NaN), 37 (lookup returns None for a missing or lowercase algorithm), 58 (unhandled rejection), 35 (headers `b`, `d` survive the delete loop), 30 (`COMPREPLY` not cleared). 5/5 confirmed. (decided by: Vighnesh, delegated)
-- Spot-check approved by Vighnesh ("yes"); set frozen and committed `4f45282`.
+- Spot-check approved by Vighnesh ("yes"); set frozen and committed `77d6eb3`.
 - First dev run (48 cases, `gemini-3.5-flash-lite`, 316 requests, $0): written into `docs/benchmark.md` and `README.md` by `make bench-score`.
 
 ```
