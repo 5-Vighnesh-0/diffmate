@@ -272,7 +272,7 @@ Already done in Phases 1–2: confidence filter, dedupe, comment cap; core injec
 **Design**
 - One container on Render runs the API, the worker, and serves the built frontend from the same origin (first-party cookies; no CORS). Render's free tier has no background workers, so the worker runs beside uvicorn; if either process exits, the container exits and Render restarts it.
 - Postgres on Neon (free, no card, does not expire; `?ssl=require`). Redis on Render Key Value (free, in memory: a restart clears sessions, quota counters and replay keys; reviews are safe in Neon; Google's own daily limit still caps spend at $0).
-- Keep-alive and health checks hit `/` (static page), never `/health`, because `/health` wakes the database and Neon's free plan allows 100 compute-hours a month.
+- Keep-alive and health checks hit `/` (static page), never `/health`, because `/health` woke the database (since 2026-10-27 it checks Redis only) and Neon's free plan allows 100 compute-hours a month.
 - Configuration in `render.yaml`; secrets entered by Vighnesh in Render, never in files.
 
 **Tasks**

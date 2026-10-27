@@ -90,7 +90,7 @@ def create_app() -> FastAPI:
     )
 
     dashboard_limit = [Depends(rate_limit("dashboard", 60))]
-    app.include_router(health.router)
+    app.include_router(health.router, dependencies=[Depends(rate_limit("health", 30))])
     app.include_router(webhooks.router, dependencies=[Depends(rate_limit("webhook", 120))])
     app.include_router(auth.router, dependencies=dashboard_limit)
     app.include_router(runs.router, dependencies=dashboard_limit)

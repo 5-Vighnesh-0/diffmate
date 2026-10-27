@@ -82,7 +82,7 @@ What the numbers taught: the first run found 27% of bugs because the AI sometime
 ## Limits, honestly
 
 - It misses most bugs. Divide-by-zero mistakes are a consistent blind spot for the free model.
-- It runs on Gemini's free tier, where Google may use what it receives to improve its products. Use it on public code only.
+- It runs on Gemini's free tier, where Google may use what it receives to improve its products, so it reviews public repositories only. Pull requests in private repositories are ignored.
 - One free daily AI limit (about 50 to 80 reviews a day) is shared by everyone using this deployment.
 - The free server may restart at any time; people sign in again, and reviews and votes are kept.
 

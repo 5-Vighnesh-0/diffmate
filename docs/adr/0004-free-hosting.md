@@ -26,7 +26,7 @@ Options checked on 2026-10-21:
 - **Render free Key Value** for the queue, sessions, quota counters and replay keys, with an empty IP allow-list (no outside access).
 - **Neon free Postgres** for runs, findings, traces and votes (does not expire; TLS required).
 - **UptimeRobot free** checks `/` every 5 minutes, so the free server never reaches its 15-minute sleep and webhooks are never lost to a cold start.
-- Health checks and the pinger use `/`, never `/health`, because `/health` touches the database and Neon's free plan allows 100 compute-hours a month.
+- Health checks and the pinger use `/`, never `/health`, because `/health` used to touch the database (it no longer does, since 2026-10-27, but `/` stays the target) and Neon's free plan allows 100 compute-hours a month.
 - Frontend and API share one origin, so the session cookie is first-party and no CORS is needed.
 - Secrets are entered by Vighnesh in Render (`sync: false`), never in files.
 

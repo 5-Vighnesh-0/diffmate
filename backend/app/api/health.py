@@ -2,17 +2,10 @@ import asyncio
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
-from sqlalchemy import text
 
 router = APIRouter()
 
-CHECK_TIMEOUT_SECONDS = 2.0  # a stalled Postgres/Redis must fail the check, not hang /health
-
-
-async def _postgres_ok(db) -> bool:
-    async with db.connect() as conn:
-        await conn.execute(text("SELECT 1"))
-    return True
+CHECK_TIMEOUT_SECONDS = 2.0  # a stalled Redis must fail the check, not hang /health
 
 
 async def _check(probe, *args) -> bool:
@@ -22,10 +15,11 @@ async def _check(probe, *args) -> bool:
         return False
 
 
+# No Postgres probe: /health is public, and each probe would wake the Neon database and use
+# its free compute hours. start.sh runs migrations before the API, so a running API had a DB.
 async def health_checks(request: Request) -> dict[str, bool]:
     state = request.app.state
     return {
-        "postgres": await _check(_postgres_ok, state.db),
         "redis": await _check(state.redis.ping),
     }
 

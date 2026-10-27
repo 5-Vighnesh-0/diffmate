@@ -27,7 +27,7 @@ Status: reviewed against the code at the end of Phase 3 (2026-10-07), including 
 | 1 | Forged webhook (S) | HMAC SHA-256, constant-time byte compare; 401 | `security/test_webhook.py`, `unit/test_signature.py` |
 | 2 | Replayed webhook, including under a new delivery ID (S) | Replay key = the signature, 7-day TTL; only signed requests are recorded | `test_replayed_delivery_is_ignored`, `test_same_signed_body_with_a_new_delivery_id_is_ignored` |
 | 3 | Oversized or chunked bodies (D) | 1 MiB limit while streaming; 413 | `test_oversized_body_gets_413`, `test_oversized_chunked_body_without_length_gets_413` |
-| 4 | Request floods (D) | Redis rate limit per client IP: webhook 120/min, dashboard 60/min; 429 + Retry-After; counter keys always carry a TTL. Client IP from `CF-Connecting-IP`, set by Cloudflare (laptop tunnel, and in front of Render); on Render a client-sent value is rejected by Cloudflare (error 1000), tested live 2026-10-21 | `security/test_headers.py` (incl. Retry-After and TTL) |
+| 4 | Request floods (D) | Redis rate limit per client IP: webhook 120/min, dashboard 60/min, `/health` 30/min; 429 + Retry-After; counter keys always carry a TTL. Client IP from `CF-Connecting-IP`, set by Cloudflare (laptop tunnel, and in front of Render); on Render a client-sent value is rejected by Cloudflare (error 1000), tested live 2026-10-21 | `security/test_headers.py` (incl. Retry-After and TTL) |
 | 5 | Payload fields steering GitHub API paths (T) | Repo name and SHA must match strict patterns; 400 | `test_suspicious_repo_or_sha_gets_400_and_no_job` |
 | 6 | Prompt injection in title, body, diff, file names, code, tool output (T, E) | Everything PR-derived is wrapped in `<untrusted_pr_content>`, delimiter look-alikes in any case are defused; system prompt says it is data | `unit/test_loop.py` (markers, tag variants, file names, tool output); live suite `benchmark/injection/` (8/8 pass on Flash Lite, 2026-10-07) |
 | 7 | An injected model trying to act (E) | Only 4 read-only tools + `submit_findings`; unknown tools refused; max 5 calls per step; findings schema with `extra="forbid"`; diff-line filter; cap 5; reviews are `COMMENT` only | `integration/test_injection_pipeline.py`, `unit/test_tools.py`, `unit/test_filters.py` |
@@ -49,6 +49,8 @@ Status: reviewed against the code at the end of Phase 3 (2026-10-07), including 
 | 23 | Secrets or code in logs (I) | JSON logs with IDs only; no bodies or diffs; httpx at WARNING | `test_http_client_request_urls_are_not_logged`, log review |
 | 24 | Supply chain (packages, Actions, skills) (T) | Lockfiles; pip-audit and pnpm audit; Actions pinned to SHAs; uv version pinned; skills installed after a quality gate | CI |
 | 25 | Exposure through the tunnel (I) | Only the API port is tunnelled; Postgres, Redis, worker, and frontend are on 127.0.0.1 or the private network | Compose review |
+| 26 | Private code sent to the free AI tier, which may learn from it (I) | Webhook ignores any repository not marked `private: false`; the worker re-checks the live PR before any AI call and stops if the repo is private | `test_private_repository_is_ignored_and_not_queued`, `test_a_private_repository_is_never_sent_to_the_ai` |
+| 27 | Anyone keeping the free Neon database awake through `/health` (D) | `/health` checks Redis only, never Postgres; rate-limited | `test_health_checks_time_out_instead_of_hanging` (fails if Postgres is touched), `test_health_rate_limit_is_30_per_minute` |
 
 ## Out of scope for v1
 
@@ -57,7 +59,7 @@ Compromised GitHub, Cloudflare, or Google; multi-tenant billing abuse; physical 
 ## Residual risk
 
 - Prompt injection cannot be fully removed. A model that obeys an injection can still only write up to 5 plain-text comments on changed lines; it cannot act, read outside the PR, or approve.
-- The free tier lets Google use prompts to improve its products, so only public code should be reviewed (ADR 0003).
+- The free tier lets Google use prompts to improve its products, so only public code is reviewed (ADR 0003; enforced since 2026-10-27, row 26).
 - Images and compose services are pinned by tag, not digest (Actions are pinned by SHA). Revisit before deployment.
 - Access lists come from GitHub at login and last for the session (8 h): a user removed from a repo keeps read access until the session ends.
 - Request spacing is exact for one worker process (`max_jobs = 1`); scaling workers would need an atomic Redis limiter.

@@ -2,6 +2,17 @@
 
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: not decided yet.
 
+## [Unreleased]
+
+### Security
+
+- Private repositories are now refused: the webhook ignores them, and the worker re-checks with GitHub before any AI call. Before, "public repositories only" was a note, not a rule.
+- `/health` no longer queries Postgres and is rate-limited (30/min), so nobody can keep the free Neon database awake through it.
+
+### Fixed
+
+- A paused, failed, or crashed review that was resumed always ended as "failed": its old AI steps were still saved and the new ones collided with them. Resuming now clears the old attempt's steps and notes (and votes on them) first.
+
 ## [1.0.0] - 2026-10-21
 
 First release: all six phases approved.

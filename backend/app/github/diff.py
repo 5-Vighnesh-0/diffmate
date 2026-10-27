@@ -121,10 +121,14 @@ class PullInfo:
     title: str
     body: str
     github_repo_id: int
+    private: bool
 
 
 async def get_pull_request(http: httpx.AsyncClient, token: str, repo: str, pr: int) -> PullInfo:
     r = await http.get(f"/repos/{repo}/pulls/{pr}", headers={"Authorization": f"Bearer {token}"})
     r.raise_for_status()
     d = r.json()
-    return PullInfo(d.get("title") or "", d.get("body") or "", int(d["base"]["repo"]["id"]))
+    base = d["base"]["repo"]
+    return PullInfo(
+        d.get("title") or "", d.get("body") or "", int(base["id"]), base.get("private") is not False
+    )

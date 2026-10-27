@@ -12,7 +12,7 @@ PR_OPENED = {
     "action": "opened",
     "number": 7,
     "pull_request": {"head": {"sha": SHA}},
-    "repository": {"full_name": "o/r"},
+    "repository": {"full_name": "o/r", "private": False},
     "installation": {"id": 42},
 }
 JOB_ID = f"review:o/r:7:{SHA}"
@@ -78,6 +78,15 @@ async def test_valid_pr_opened_enqueues_one_review_job(client, arq):
 
     assert r.status_code == 202
     assert arq.jobs == {JOB_ID: ("review_pr", ("o/r", 7, SHA, 42))}
+
+
+async def test_private_repository_is_ignored_and_not_queued(client, arq):
+    private = {**PR_OPENED, "repository": {"full_name": "o/r", "private": True}}
+
+    r = await send(client, private)
+
+    assert (r.status_code, r.json()) == (200, {"status": "ignored"})
+    assert arq.jobs == {}
 
 
 async def test_bad_signature_gets_401_and_no_job(client, arq):

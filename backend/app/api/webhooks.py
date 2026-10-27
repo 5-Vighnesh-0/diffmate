@@ -79,6 +79,10 @@ async def github_webhook(
     # These go into GitHub API paths; reject anything that is not a plain owner/name and SHA.
     if not REPO_NAME.fullmatch(repo) or not COMMIT_SHA.fullmatch(sha):
         return error(400, "bad_payload", "Unexpected repository name or commit SHA")
+    # Public code only: the free AI tier may learn from what it reads. Missing flag = private.
+    if payload["repository"].get("private") is not False:
+        log.info("private repository %s ignored (delivery %s)", repo, delivery)
+        return JSONResponse({"status": "ignored"}, status_code=200)
 
     try:
         queued = await enqueue_review(

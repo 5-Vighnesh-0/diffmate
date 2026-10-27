@@ -8,8 +8,8 @@ from pathlib import Path
 import httpx
 from arq import Retry, func
 from arq.connections import RedisSettings
+from sqlalchemy import delete, update
 from sqlalchemy import func as sql
-from sqlalchemy import update
 from sqlalchemy.dialects.postgresql import insert
 
 from app.agent.budget import Budget, DailyCap, estimated_cost_usd
@@ -97,6 +97,11 @@ async def claim_run(db, installation_id: int, repo: str, pr: int, sha: str, info
                 .values(status="running", error=None, started_at=sql.now(), finished_at=None)
                 .returning(Run.id)
             )
+            if run_id is not None:
+                # A resumed run starts over: drop the old attempt's trace and findings
+                # (their votes go with them) so step numbers and findings don't collide.
+                await s.execute(delete(TraceStep).where(TraceStep.run_id == run_id))
+                await s.execute(delete(Finding).where(Finding.run_id == run_id))
         return run_id
 
 
@@ -198,6 +203,10 @@ async def review_pr(ctx, repo: str, pr: int, sha: str, installation_id: int) -> 
             http, ctx["app_jwt"](), installation_id, repo.split("/")[1]
         )
         info = await get_pull_request(http, token, repo, pr)
+        if info.private:
+            # Second check after the webhook's: the repo may have turned private since.
+            log.info("review %s#%s skipped: private repository", repo, pr)
+            return
         run_id = await claim_run(ctx["db"], installation_id, repo, pr, sha, info)
         if run_id is None:
             log.info("review %s#%s@%s already done, skipping", repo, pr, sha[:7])

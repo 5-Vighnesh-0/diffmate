@@ -50,6 +50,16 @@ async def test_dashboard_rate_limit_is_60_per_minute(client, redis):
     assert codes[60] == 429
 
 
+async def test_health_rate_limit_is_30_per_minute(client, redis, app):
+    from app.api.health import health_checks
+
+    app.dependency_overrides[health_checks] = lambda: {"redis": True}
+    codes = [(await client.get("/health")).status_code for _ in range(31)]
+
+    assert codes[:30] == [200] * 30
+    assert codes[30] == 429
+
+
 import pytest  # noqa: E402
 
 

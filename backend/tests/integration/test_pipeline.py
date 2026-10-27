@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from types import SimpleNamespace
 
 import httpx
-from sqlalchemy import select
+from sqlalchemy import select, text
 
 from app.agent.llm import LlmStep, ToolCall
 from app.db.models import Finding, Run, TraceStep
@@ -66,13 +66,17 @@ def tarball() -> bytes:
     return buf.getvalue()
 
 
-def fake_github(reviews: list):
+def fake_github(reviews: list, private=False):
     def handler(request: httpx.Request) -> httpx.Response:
         path, method = request.url.path, request.method
         if path.endswith("/access_tokens"):
             return httpx.Response(201, json={"token": "t"})
         if path == "/repos/o/r/pulls/7" and method == "GET":
-            body = {"title": "Fix div", "body": "please", "base": {"repo": {"id": 555}}}
+            body = {
+                "title": "Fix div",
+                "body": "please",
+                "base": {"repo": {"id": 555, "private": private}},
+            }
             return httpx.Response(200, json=body)
         if path == "/repos/o/r/pulls/7/files":
             return httpx.Response(
@@ -90,7 +94,7 @@ def fake_github(reviews: list):
     return httpx.AsyncClient(transport=httpx.MockTransport(handler), base_url="https://x")
 
 
-def ctx(sessionmaker, llm, reviews, cap=100):
+def ctx(sessionmaker, llm, reviews, cap=100, private=False):
     settings = SimpleNamespace(
         llm_model="gemini-3.8-flash",
         llm_daily_request_cap=cap,
@@ -101,7 +105,7 @@ def ctx(sessionmaker, llm, reviews, cap=100):
         comment_cap=5,
     )
     return {
-        "http": fake_github(reviews),
+        "http": fake_github(reviews, private),
         "app_jwt": lambda: "jwt",
         "job_try": 1,
         "settings": settings,
@@ -196,7 +200,6 @@ async def test_a_cancelled_job_is_recorded_as_failed_so_it_can_be_retried(sessio
 async def test_a_run_left_running_by_a_crash_is_reclaimed_after_the_job_timeout(
     sessionmaker, session
 ):
-    from sqlalchemy import text
 
     reviews = []
     await review_pr(ctx(sessionmaker, reviewing_llm(), reviews), "o/r", 7, SHA, 42)
@@ -210,6 +213,36 @@ async def test_a_run_left_running_by_a_crash_is_reclaimed_after_the_job_timeout(
     await review_pr(ctx(sessionmaker, llm, reviews), "o/r", 7, SHA, 42)
 
     assert llm.calls == 2
+    run = (await session.execute(select(Run))).scalar_one()
+    await session.refresh(run)
+    assert run.status == "done"
+    steps = (await session.execute(select(TraceStep.step_no))).scalars().all()
+    assert sorted(steps) == [1, 2]  # the old attempt's trace was replaced, not duplicated
+    assert len((await session.execute(select(Finding))).scalars().all()) == 3
+
+
+async def test_a_paused_run_resumes_with_a_fresh_trace_and_findings(sessionmaker, session):
+    reviews = []
+    await review_pr(ctx(sessionmaker, reviewing_llm(), reviews), "o/r", 7, SHA, 42)
+    await session.execute(text("update runs set status='paused_daily_cap'"))
+    await session.commit()
+
+    await review_pr(ctx(sessionmaker, reviewing_llm(), reviews), "o/r", 7, SHA, 42)
+
+    run = (await session.execute(select(Run))).scalar_one()
+    await session.refresh(run)
+    assert run.status == "done"
+    assert len((await session.execute(select(TraceStep))).scalars().all()) == 2
+    assert len((await session.execute(select(Finding))).scalars().all()) == 3
+
+
+async def test_a_private_repository_is_never_sent_to_the_ai(sessionmaker, session):
+    reviews, llm = [], reviewing_llm()
+
+    await review_pr(ctx(sessionmaker, llm, reviews, private=True), "o/r", 7, SHA, 42)
+
+    assert (llm.calls, reviews) == (0, [])
+    assert (await session.execute(select(Run))).scalars().all() == []
 
 
 async def test_provider_rate_limit_pauses_the_run_and_posts_nothing(sessionmaker, session):

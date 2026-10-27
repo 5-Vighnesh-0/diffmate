@@ -99,7 +99,7 @@ Save. From now on GitHub sends pull request events to Render, not to your laptop
 Render's free server sleeps after 15 minutes without visits and takes about a minute to wake, which is longer than GitHub waits. A free pinger visits every 5 minutes so it never sleeps.
 
 1. Sign up at uptimerobot.com (free plan, personal non-commercial use).
-2. Add an **HTTP(s)** monitor for `https://<your address>/` (the home page, **not** `/health`, which would keep the database awake and use up Neon's free hours), every 5 minutes.
+2. Add an **HTTP(s)** monitor for `https://<your address>/` (the home page, **not** `/health`, which is rate-limited and is not meant as a pinger), every 5 minutes.
 
 ### 6. Check it works
 

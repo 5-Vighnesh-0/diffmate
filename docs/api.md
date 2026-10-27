@@ -8,7 +8,7 @@ Conventions: JSON bodies, UTC ISO 8601 timestamps, errors as `{"error": {"code":
 
 ### `GET /health`
 
-Returns `200 {"status": "ok"}` when the API can reach Postgres and Redis.
+Returns `200 {"status": "ok"}` when the API can reach Redis, else `503`. It does not touch Postgres, so it cannot wake the free Neon database (migrations run before the API starts). Rate limit: 30 per minute per client IP.
 
 ### `POST /webhooks/github`
 
@@ -26,9 +26,10 @@ Checks run in this order (implemented in Phase 1):
 4. Delivery ID already seen in the last 7 days: `200 {"status":"duplicate"}`, no action. Only signed requests reach this check, so forged requests cannot burn IDs.
 5. Body is not a JSON object: `400`.
 6. Event is not `pull_request`, or action is not `opened`, `synchronize`, `reopened`, or `ready_for_review`: `200 {"status":"ignored"}`.
-7. Missing PR fields: `400`.
-8. Enqueue fails (Redis down): `503`, and the delivery ID is released so GitHub's redelivery works.
-9. Otherwise one job per (repo, PR, head SHA) is queued: `202 {"status":"queued"}`. A second delivery for the same commit queues nothing.
+7. Missing PR fields, or a repository name or SHA outside the strict patterns: `400`.
+8. Private repository (or no `private: false` in the payload): `200 {"status":"ignored"}`. The worker checks again with GitHub before reviewing.
+9. Enqueue fails (Redis down): `503`, and the delivery ID is released so GitHub's redelivery works.
+10. Otherwise one job per (repo, PR, head SHA) is queued: `202 {"status":"queued"}`. A second delivery for the same commit queues nothing.
 
 ## Auth
 
