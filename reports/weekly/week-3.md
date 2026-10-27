@@ -29,6 +29,7 @@ vitest → 6 passed (frontend unchanged)
 
 **History rewrite (approved by Vighnesh, force-pushed)**
 - Removed the `Co-Authored-By: Claude` line from all 37 earlier commit messages (`git filter-branch --msg-filter`); file contents unchanged, every commit ID changed. Commit IDs quoted in `reports/` updated to the new ones. Old history kept locally as branch `backup-before-rewrite`.
+- After the push: live `/health` ok and limited (30×200, then 429). CI tests green (201 backend, 6 frontend), but pip-audit failed on a new filelock advisory (CVE-2026-112907/112913/112940); bumped filelock 4.0.12 → 4.2.4 in `backend/uv.lock`; local audit clean, 201 passed.
 
 **Next**
 - Push after approval; then check live `/health` ok and that a private-repo PR gets no review.
