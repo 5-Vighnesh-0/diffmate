@@ -100,7 +100,9 @@ function Review({ id, me }: { id: number; me: Me }) {
 
       <section className="intro">
         <h2>What DiffMate noticed</h2>
-        {n === 0 ? (
+        {n === 0 && run.error ? (
+          <p>DiffMate did not finish reading this change, so having no notes here does not mean it is fine.</p>
+        ) : n === 0 ? (
           <p>DiffMate read this change and found nothing worth a note. That is a good sign, though not a guarantee.</p>
         ) : (
           <p>

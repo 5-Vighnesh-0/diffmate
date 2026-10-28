@@ -19,6 +19,7 @@ function statusSentence(r: Run) {
       // A paused review does not resume on its own: a new GitHub notice for the change resumes it (worker.py).
       return "Paused: DiffMate uses a free AI service with a daily limit, and today's limit was reached. It finishes the next time this change is updated after the limit resets.";
     case "done":
+      if (r.error) return r.error; // stopped early: "no notes" would wrongly read as clean
       return r.findings
         ? `DiffMate left ${r.findings} ${r.findings === 1 ? "note" : "notes"}.`
         : "DiffMate found nothing worth a note.";

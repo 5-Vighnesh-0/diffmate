@@ -69,5 +69,11 @@ pytest → 226 passed · ruff → All checks passed!
 pytest → 232 passed · ruff → All checks passed! · vitest → 12 passed · pnpm build → ok
 ```
 
+**Review item #2**
+- Runs that end at the step or token cap, or with no answer, now record "Stopped early: ..." in `runs.error`; the dashboard and run page say the review may be incomplete instead of "found nothing". No migration needed (decided by: Claude, smallest fix). Items #4, #6, #7, #8: their details were lost in a context summary; a fresh code review will find what remains.
+```
+pytest → 233 passed · vitest → 12 passed
+```
+
 **Next**
 - Push after approval. Then, in order: one-click fixes, talk back, better catch rate (benchmark), plant a bug for real.

@@ -389,3 +389,15 @@ async def test_one_note_gets_at_most_three_answers(sessionmaker):
         await answer_reply(c, "o/r", 7, 42, 100, "really?", "@@", 9)
 
     assert llm.calls == 3 and len(replies) == 3
+
+
+async def test_a_review_that_stops_early_is_not_shown_as_clean(sessionmaker, session):
+    # The AI keeps reading and never submits: the run hits its step cap with no findings.
+    llm = FakeLLM([("read_file", {"path": "calc.py"})] * 8)
+    reviews = []
+
+    await review_pr(ctx(sessionmaker, llm, reviews), "o/r", 7, SHA, 42)
+
+    run = (await session.execute(select(Run))).scalar_one()
+    assert run.status == "done" and reviews == []
+    assert run.error.startswith("Stopped early")

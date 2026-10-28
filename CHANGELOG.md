@@ -23,6 +23,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: no
 
 ### Fixed
 
+- A review that stopped before the AI's final answer (step or token limit) showed as "found nothing", which reads as clean. It now says it stopped early and may be incomplete (review item #2; kept in `runs.error`, no migration).
 - A paused, failed, or crashed review that was resumed always ended as "failed": its old AI steps were still saved and the new ones collided with them. Resuming now clears the old attempt's steps and notes (and votes on them) first.
 
 ## [1.0.0] - 2026-10-21

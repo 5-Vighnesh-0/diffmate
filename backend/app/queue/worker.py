@@ -46,6 +46,16 @@ from app.github.diff import PullInfo, checkout, get_pr_files, get_pull_request
 log = logging.getLogger(__name__)
 
 MAX_TRIES = 3
+# A run that ends without the AI's final answer is "done" but incomplete: say so, or "no notes"
+# reads as "clean" (review item #2). Stored in runs.error, shown on the dashboard.
+STOPPED_EARLY = {
+    "step_cap": "Stopped early: DiffMate used all of its AI steps before finishing, so this "
+    "review may be incomplete.",
+    "token_cap": "Stopped early: the change was too large for DiffMate's reading limit, so "
+    "this review may be incomplete.",
+    "no_submission": "Stopped early: the AI stopped without giving its answer, so this review "
+    "may be incomplete.",
+}
 RETRYABLE_RUN_STATUSES = ("failed", "paused_daily_cap")
 JOB_TIMEOUT_SECONDS = 900  # worst case 8 steps x 90 s LLM timeout = 720 s
 
@@ -212,6 +222,7 @@ async def _review(ctx, token: str, run_id: int, repo: str, pr: int, sha: str, in
         settings.strict_confidence_threshold,
     )
     comment_ids = None
+    early = STOPPED_EARLY.get(result.stop_reason)
     if result.stop_reason in ("daily_cap", "rate_limited"):
         status = "paused_daily_cap"  # nothing is posted; a later delivery can resume it
     else:
@@ -221,7 +232,14 @@ async def _review(ctx, token: str, run_id: int, repo: str, pr: int, sha: str, in
         if review_id is not None:  # remembered so a reply can be traced back to its note
             comment_ids = await review_comment_ids(http, token, repo, pr, review_id)
     await save_result(
-        ctx["db"], run_id, status, settings.llm_model, result, statuses, comment_ids=comment_ids
+        ctx["db"],
+        run_id,
+        status,
+        settings.llm_model,
+        result,
+        statuses,
+        error=early,
+        comment_ids=comment_ids,
     )
     log.info(
         "review %s#%s@%s %s: %s posted, stop=%s, %d ms",
