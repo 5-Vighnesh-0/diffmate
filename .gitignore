@@ -13,3 +13,11 @@ node_modules/
 dist/
 
 *.log
+
+# brainstorm mockups (local only)
+.superpowers/
+# agent skills and design notes (local only)
+.agents/
+.claude/skills/
+skills-lock.json
+docs/superpowers/
