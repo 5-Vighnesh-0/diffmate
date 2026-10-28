@@ -20,7 +20,7 @@ const WHY: Record<string, string> = {
   submit_findings: "Hands back its notes. This ends the AI's turn.",
 };
 
-const VH_PER_SECOND = 26; // scroll length per second of flow
+const VH_PER_SECOND = 40; // scroll length per second of flow (26 felt rushed)
 const clamp = (x: number) => Math.min(1, Math.max(0, x));
 const between = (x: number, a: number, b: number) => clamp((x - a) / (b - a));
 const stamp = (s: number) => `${s < 0 ? "−" : "+"}${Math.abs(s).toFixed(2)} s`;
@@ -105,8 +105,8 @@ export function ReviewFlow({ still }: { still: boolean }) {
   const wipe = `scaleX(${between(v, catchAt, catchAt + 0.5)})`; // transform only (CLAUDE.md)
   const landed = between(v, catchAt + 0.6, catchAt + 1.1);
 
-  const out = between(t, INTRO, INTRO + 0.9);
-  const back = between(t, tl.hit - 0.5, tl.hit);
+  const out = between(t, INTRO, INTRO + 1.6); // slow enough to follow it across
+  const back = between(t, tl.hit - 0.9, tl.hit);
   const done = (step: Step) => tl.events.find((e) => e.step === step)!;
   const current = [...tl.events].reverse().find((e) => e.step && t >= e.at)?.step;
   const due = tl.events.filter((e) => t >= e.at);

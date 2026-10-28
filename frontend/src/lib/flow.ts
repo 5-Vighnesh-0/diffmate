@@ -18,8 +18,8 @@ type Segment = { v0: number; v1: number; r0: number; rate: number };
 
 export const INTRO = 6; // the visitor's own change, before the clock starts
 export const OUTRO = 4;
-export const HOLD = 2.2; // the scroll holds still at the catch
-const AI_SHOWN = 10; // the AI's waiting is squeezed into about this much flow time
+export const HOLD = 3; // the scroll holds still at the catch
+const AI_SHOWN = 14; // the AI's waiting is squeezed into about this much flow time
 
 export function timeline(run: Run, clean: string) {
   const seconds = run.seconds;
