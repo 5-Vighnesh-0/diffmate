@@ -70,7 +70,7 @@ def sandbox(app):
     app.dependency_overrides[get_settings] = lambda: settings
     app.dependency_overrides[get_redis] = lambda: redis
     app.dependency_overrides[get_http] = lambda: httpx.AsyncClient(
-        transport=httpx.MockTransport(fake.handler), base_url="https://api.github.com"
+        transport=httpx.MockTransport(lambda r: fake.handler(r)), base_url="https://api.github.com"
     )
     return fake
 
@@ -124,3 +124,22 @@ async def test_status_shows_only_diffmates_comments(client, sandbox):
         "url": f"https://github.com/{SANDBOX}/pull/12",
         "comments": [{"line": 8, "body": "**Bug** · high severity"}],
     }
+
+
+async def test_a_github_failure_is_a_clean_error_and_does_not_use_up_the_day(client, sandbox):
+    original = sandbox.handler
+
+    def broken(request):
+        if request.url.path.endswith("/pulls") and request.method == "POST":
+            return httpx.Response(403, json={"message": "Resource not accessible"})
+        return original(request)
+
+    sandbox.handler = broken
+    r = await client.post("/api/demo", json={"example": "loop"})
+
+    assert r.status_code == 502
+    deleted = [p for m, p, _ in sandbox.calls if m == "DELETE" and "demo-loop" in p]
+    assert deleted  # the half-made branch is removed
+    sandbox.handler = original
+    assert (await client.post("/api/demo", json={"example": "loop"})).status_code == 201
+    assert (await client.post("/api/demo", json={"example": "loop"})).status_code == 201

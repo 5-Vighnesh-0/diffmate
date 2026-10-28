@@ -91,7 +91,7 @@ What the numbers taught: the first run found 27% of bugs because the AI sometime
 Prerequisites: Docker, Python 3.12 with [uv](https://docs.astral.sh/uv/), Node.js 22 with pnpm.
 
 ```bash
-cp .env.example .env    # fill in your own values; see docs/runbooks/github-app-setup.md
+cp .env.example .env    # fill in your own values (the comments in .env.example say where each comes from)
 docker compose up       # Postgres, Redis, API, worker, frontend on 127.0.0.1
 ```
 
@@ -107,6 +107,16 @@ Hosting for $0 with no card: Render, Neon and UptimeRobot.
 ## Tech stack
 
 Python 3.12, FastAPI, SQLAlchemy 2 with Alembic, arq on Redis, Postgres, Gemini (`google-genai`), TypeScript, React 19, Vite, Motion, Vitest, Docker, GitHub Actions. Hosted on Render (free) with Neon Postgres (free).
+
+## Contributing
+
+DiffMate is a solo portfolio project, but fixes and ideas are welcome.
+
+1. Open an issue first for anything bigger than a small fix.
+2. Branch from `main` (`feat/...`, `fix/...`), write tests first for backend logic, and keep the change small.
+3. Run `make lint` and `make test` before opening a pull request.
+4. Never commit `.env` or any secret. No new dependency without a reason in the pull request.
+5. Frontend: animate only `transform` and `opacity`, and keep the reduced-motion layout working.
 
 ## Security
 

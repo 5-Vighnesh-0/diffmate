@@ -81,3 +81,12 @@ async def test_the_bar_goes_back_down_when_later_votes_are_useful(session):
         session.add(Feedback(finding_id=finding.id, github_user_id=7, verdict="accept"))
     await session.commit()
     assert await stricter_categories(session, [repo]) == {}  # 3 of 5: below two thirds
+
+
+async def test_votes_on_notes_that_were_never_posted_do_not_count(session):
+    repo = await repo_with_votes(session, 1, ["reject", "reject", "reject"])
+    from sqlalchemy import update
+
+    await session.execute(update(Finding).values(status="dropped_stricter"))
+    await session.commit()
+    assert await stricter_categories(session, [repo]) == {}

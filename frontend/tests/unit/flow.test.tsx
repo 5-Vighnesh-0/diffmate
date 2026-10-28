@@ -51,3 +51,12 @@ describe("changeOf", () => {
     expect(c.lines.filter((l) => l.kind === "add").map((l) => l.n)).toEqual([8, 9]);
   });
 });
+
+describe("changeOf with added lines", () => {
+  it("keeps the numbering right when a change adds a line", () => {
+    const c = changeOf("a\nb\nc\n", "a\nb\nguard\nc\n");
+    expect(c.removed).toEqual([]);
+    expect(c.added).toEqual(["guard"]);
+    expect(c.lines.map((l) => [l.n, l.kind])).toEqual([[1, "same"], [2, "same"], [3, "add"], [4, "same"]]);
+  });
+});

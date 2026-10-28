@@ -11,6 +11,8 @@ export function stubBrowser({ reduceMotion = false } = {}) {
     addListener() {},
     removeListener() {},
   }));
+  // The landing page asks whether the live demo is on; no test reaches a real server.
+  vi.stubGlobal("fetch", async () => new Response(JSON.stringify({ enabled: false }), { status: 200 }));
   vi.stubGlobal(
     "IntersectionObserver",
     class {

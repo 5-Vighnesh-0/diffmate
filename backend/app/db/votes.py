@@ -30,7 +30,8 @@ async def stricter_categories(s, repo_ids) -> dict[int, list[CategoryVotes]]:
         .join(Finding, Finding.id == Feedback.finding_id)
         .join(Run, Run.id == Finding.run_id)
         .join(PullRequest, PullRequest.id == Run.pull_request_id)
-        .where(PullRequest.repo_id.in_(repo_ids))
+        # only notes people saw on GitHub: a held-back note's vote must not keep the bar up
+        .where(PullRequest.repo_id.in_(repo_ids), Finding.status == "posted")
         .group_by(PullRequest.repo_id, Finding.category)
         .having(total >= MIN_VOTES, not_useful * 3 >= total * 2)
         .order_by(PullRequest.repo_id, Finding.category)

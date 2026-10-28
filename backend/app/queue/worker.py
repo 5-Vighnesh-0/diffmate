@@ -36,6 +36,7 @@ from app.db.votes import stricter_categories
 from app.github.app_auth import get_installation_token, make_app_jwt
 from app.github.client import github_http
 from app.github.comments import (
+    format_comment,
     post_review,
     reply_to_comment,
     review_comment_ids,
@@ -138,7 +139,7 @@ async def save_result(
     result: AgentResult | None = None,
     statuses=(),
     error: str | None = None,
-    comment_ids: dict[tuple[str, int], int] | None = None,
+    comment_ids: dict[tuple[str, int, str], int] | None = None,
 ) -> None:
     async with db() as s, s.begin():
         values = {"status": status, "finished_at": sql.now(), "error": error}
@@ -157,7 +158,9 @@ async def save_result(
                         run_id=run_id,
                         source="agent",
                         status=finding_status,
-                        github_comment_id=(comment_ids or {}).get((f.file, f.line))
+                        github_comment_id=(comment_ids or {}).get(
+                            (f.file, f.line, format_comment(f))
+                        )
                         if posted
                         else None,
                         **f.model_dump(exclude={"fix"}),
@@ -230,7 +233,11 @@ async def _review(ctx, token: str, run_id: int, repo: str, pr: int, sha: str, in
         posted = [f for f, s in statuses if s == "posted"]
         review_id = await post_review(http, token, repo, pr, sha, posted)
         if review_id is not None:  # remembered so a reply can be traced back to its note
-            comment_ids = await review_comment_ids(http, token, repo, pr, review_id)
+            try:
+                comment_ids = await review_comment_ids(http, token, repo, pr, review_id)
+            except httpx.HTTPError:
+                # The review is already on GitHub: only replies to it lose their link.
+                log.warning("review %s#%s posted, but its comment ids could not be read", repo, pr)
     await save_result(
         ctx["db"],
         run_id,
@@ -350,6 +357,8 @@ async def answer_reply(
     await reply_to_comment(http, token, repo, pr, root_id, answer.reply)
     if answer.verdict == "withdraw":
         await withdraw_comment(http, token, repo, root_id, note.explanation)
+        # Withdrawn for good: later replies in the thread get no answer (and spend no quota).
+        await ctx["redis"].set(f"answers:{note.id}", MAX_ANSWERS_PER_NOTE, ex=30 * 24 * 3600)
         async with ctx["db"]() as s, s.begin():
             await s.execute(
                 insert(Feedback)

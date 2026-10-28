@@ -83,7 +83,7 @@ export function LiveRun({ example, label }: { example: string; label: string }) 
       {state.kind === "done" && (
         <p>
           {state.review.comments.length
-            ? `DiffMate commented on line ${state.review.comments[0].line}: ${headline(state.review.comments[0].body)}. `
+            ? `DiffMate commented${state.review.comments[0].line ? ` on line ${state.review.comments[0].line}` : ""}: ${headline(state.review.comments[0].body)}. `
             : "No comment yet: it may be busy or out of free requests for today. "}
           <a href={state.opened.url}>See it on GitHub</a>
         </p>

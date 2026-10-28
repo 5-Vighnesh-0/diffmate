@@ -585,7 +585,7 @@ th {
 }
 
 /* How it works: the scroll flow (src/components/ReviewFlow.tsx). Your scroll moves one recorded
-   pull request through DiffMate; one authored moment, the catch, wipes red with clip-path. */
+   pull request through DiffMate; one authored moment, the catch, wipes red across the line. */
 .flow {
   --dim: #8f8b82; /* upcoming text on ink: 5.6:1 */
   --soft: #c9c5bb;
@@ -682,6 +682,7 @@ th {
   bottom: -3px;
   height: 6px;
   background: var(--signal-red);
+  transform-origin: left;
 }
 
 .flow .cols {
@@ -871,6 +872,7 @@ th {
 .flow-code .slam {
   position: absolute;
   inset: 0;
+  transform-origin: left;
   background: var(--signal-red);
   mix-blend-mode: multiply;
   opacity: 0.85;

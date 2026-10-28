@@ -24,7 +24,7 @@ from app.agent.budget import Budget, DailyCap, estimated_cost_usd
 from app.agent.filters import filter_findings
 from app.agent.llm import GeminiLLM, LlmError
 from app.agent.loop import run_agent
-from app.agent.prompts import build_context
+from app.agent.prompts import LOOK_AGAIN, build_context
 from app.agent.tools import Tools
 from app.checks.linters import run_linters
 from app.core.config import get_settings
@@ -47,7 +47,7 @@ def score_injection(case: dict, posted: list[dict]) -> dict:
     return {"bug_found": found, "obeyed": obeyed, "passed": found and not obeyed}
 
 
-async def review(case: dict, llm, cap: DailyCap):
+async def review(case: dict, llm, cap: DailyCap, extra: str = ""):
     """Linters plus one agent run on the case's `after` files, like the worker does."""
     files = corpus.pr_files(case)
     with tempfile.TemporaryDirectory(prefix="diffmate-case-") as tmp:
@@ -60,6 +60,8 @@ async def review(case: dict, llm, cap: DailyCap):
         hints = await run_linters(root, list(case["after"]))
         linter_seconds = time.monotonic() - start
         context = build_context(case["title"], case["body"], files, [str(h) for h in hints])
+        if extra:
+            context += "\n\n" + extra
         result = await run_agent(llm, Tools(root, files), context, Budget(), cap)
     return files, hints, result, linter_seconds, time.monotonic() - start
 
@@ -153,9 +155,74 @@ async def bench(
     return 0
 
 
+def merge_look_again(row: dict, result, posted: list[dict], seconds: float) -> dict:
+    """A first-pass row plus its second, focused pass (only run when the first posted nothing)."""
+    b = result.budget
+    return row | {
+        "look_again": True,
+        "seconds": round(row["seconds"] + seconds, 2),
+        "llm_requests": row["llm_requests"] + result.llm_requests,
+        "tokens_in": row["tokens_in"] + b.tokens_in,
+        "tokens_out": row["tokens_out"] + b.tokens_out,
+        "cost_usd": row["cost_usd"] + estimated_cost_usd(row["model"], b.tokens_in, b.tokens_out),
+        "setups": row["setups"]
+        | {
+            "agent": row["setups"]["agent"] + [f.model_dump() for f in result.findings],
+            "filtered": row["setups"]["filtered"] + posted,
+        },
+    }
+
+
+async def look_again(base: Path, llm, cap: DailyCap, out: Path) -> int:
+    """Re-run, with LOOK_AGAIN added, only the cases whose first pass posted nothing; copy the
+    rest. Resumable like `bench`. 0 = all done, 3 = stopped (quota or provider down)."""
+    cases = {c["name"]: c for c in corpus.load_cases()}
+    done = (
+        {json.loads(line)["name"] for line in out.read_text().splitlines()}
+        if out.exists()
+        else set()
+    )
+    rows = [json.loads(line) for line in base.read_text().splitlines()]
+    settings = get_settings()
+    for row in rows:
+        if row["name"] in done:
+            continue
+        if row["setups"]["filtered"]:
+            merged = row | {"look_again": False}
+        else:
+            try:
+                files, _, result, _, seconds = await review(
+                    cases[row["name"]], llm, cap, LOOK_AGAIN
+                )
+            except LlmError as e:
+                print(f"stopped at {row['name']}: provider error ({e}). Re-run later.", flush=True)
+                return 3
+            if result.stop_reason in STOPPED:
+                print(f"stopped at {row['name']}: {result.stop_reason}. Re-run later.", flush=True)
+                return 3
+            statuses = filter_findings(
+                result.findings,
+                {f.path: f.lines for f in files},
+                settings.confidence_threshold,
+                settings.comment_cap,
+            )
+            posted = [f.model_dump() for f, s in statuses if s == "posted"]
+            merged = merge_look_again(row, result, posted, seconds)
+            found, fp = score.match(posted, row["bugs"])
+            print(
+                f"{row['name']:<40} look again: found {found}/{len(row['bugs'])} fp={fp} "
+                f"requests={result.llm_requests}",
+                flush=True,
+            )
+        with out.open("a") as f:
+            f.write(json.dumps(merged) + "\n")
+    return 0
+
+
 async def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("suite", choices=["injection", "bench"])
+    parser.add_argument("suite", choices=["injection", "bench", "look-again"])
+    parser.add_argument("--base", type=Path, help="look-again: the first-pass results file")
     parser.add_argument("--split", choices=sorted(corpus.SPLITS), default="dev")
     parser.add_argument("--model", default="gemini-3.5-flash-lite")
     parser.add_argument("--per-minute", type=int, default=12)  # Flash Lite free tier: 15 RPM
@@ -176,6 +243,17 @@ async def main() -> int:
     else:
         daily, per_minute = args.daily_cap, args.per_minute
     cap = DailyCap(redis, daily, per_minute, model=args.model)
+
+    if args.suite == "look-again":
+        # "<split>-<model>+look-again-<sha>.jsonl", so benchmark.score can read it unchanged
+        split, rest = args.base.stem.split("-", 1)
+        model, sha = rest.rsplit("-", 1)
+        out = HERE / "results" / f"{split}-{model}+look-again-{sha}.jsonl"
+        code = await look_again(args.base, llm, cap, out)
+        if code == 0:
+            print("\n" + score.report(out)[1])
+        await redis.aclose()
+        return code
 
     if args.suite == "bench":
         cases = corpus.load_cases(args.split)

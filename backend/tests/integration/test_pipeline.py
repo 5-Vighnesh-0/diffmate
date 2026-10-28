@@ -54,7 +54,10 @@ class FakeRedis:
         pass
 
     async def set(self, key, value, nx=False, ex=None):
-        pass
+        if nx and key in self.counts:
+            return None
+        self.counts[key] = int(value)
+        return True
 
 
 def tarball() -> bytes:
@@ -95,7 +98,7 @@ def fake_github(reviews: list, private=False, replies=None, edits=None):
         if path == "/repos/o/r/pulls/7/reviews/1/comments":
             comments = reviews[-1]["comments"] if reviews else []
             listed = [
-                {"id": 100 + i, "path": c["path"], "line": c["line"]}
+                {"id": 100 + i, "path": c["path"], "line": c["line"], "body": c["body"]}
                 for i, c in enumerate(comments)
             ]
             return httpx.Response(200, json=listed)
@@ -401,3 +404,40 @@ async def test_a_review_that_stops_early_is_not_shown_as_clean(sessionmaker, ses
     run = (await session.execute(select(Run))).scalar_one()
     assert run.status == "done" and reviews == []
     assert run.error.startswith("Stopped early")
+
+
+async def test_two_notes_on_one_line_keep_their_own_github_comment(sessionmaker, session):
+    security = {**finding(2, 0.9), "category": "security", "explanation": "unsafe"}
+    llm = FakeLLM([("submit_findings", {"findings": [finding(2, 0.9), security]})])
+
+    await review_pr(ctx(sessionmaker, llm, []), "o/r", 7, SHA, 42)
+
+    stored = (await session.execute(select(Finding).order_by(Finding.category))).scalars().all()
+    assert sorted(f.github_comment_id for f in stored) == [100, 101]
+
+
+async def test_a_github_hiccup_after_posting_does_not_fail_the_review(sessionmaker, session):
+    c = ctx(sessionmaker, reviewing_llm(), [])
+    inner = c["http"]._transport.handler
+
+    def flaky(request):
+        if request.url.path.endswith("/reviews/1/comments"):
+            return httpx.Response(502, json={})
+        return inner(request)
+
+    c["http"] = httpx.AsyncClient(transport=httpx.MockTransport(flaky), base_url="https://x")
+    await review_pr(c, "o/r", 7, SHA, 42)
+
+    run = (await session.execute(select(Run))).scalar_one()
+    assert run.status == "done"
+
+
+async def test_a_withdrawn_note_is_not_argued_about_again(sessionmaker):
+    replies = []
+    c = await reviewed(sessionmaker, replies, [])
+    c["llm"] = llm = answering(("withdraw", "You are right."), ("stand", "Actually no."))
+
+    await answer_reply(c, "o/r", 7, 42, 100, "wrong", "@@", 9)
+    await answer_reply(c, "o/r", 7, 42, 100, "still wrong?", "@@", 9)
+
+    assert llm.calls == 1 and replies == ["You are right."]

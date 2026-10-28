@@ -28,6 +28,14 @@ How to work:
 - Finish by calling submit_findings exactly once."""
 
 
+# Second, focused pass when the first one posts nothing (benchmark experiment, step 4).
+LOOK_AGAIN = """A first review of this pull request reported nothing. Look again, carefully, at
+the changed lines only. Check each of these on purpose: off-by-one and wrong loop bounds;
+empty, zero, None or missing input; a wrong operator, index or comparison; a value used before
+it is checked; user input reaching a shell, SQL, a file path or HTML; errors swallowed or not
+handled. Still report only real problems: reporting nothing is a good answer."""
+
+
 def build_context(title: str, body: str, files: list[PrFile], lint_hints: list[str]) -> str:
     listing = "\n".join(f"- {f.path} ({f.status}), diff lines: {len(f.lines)}" for f in files)
     diff = "\n\n".join(f"--- {f.path}\n{f.patch}" for f in files if f.patch)[:MAX_DIFF_CHARS]

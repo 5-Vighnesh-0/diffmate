@@ -69,15 +69,16 @@ async def post_review(
 
 async def review_comment_ids(
     http: httpx.AsyncClient, token: str, repo: str, pr: int, review_id: int
-) -> dict[tuple[str, int], int]:
-    """GitHub's id for each inline comment of a review, by (file, line): replies point to it."""
+) -> dict[tuple[str, int, str], int]:
+    """GitHub's id for each inline comment of a review, by (file, line, body): replies point
+    to it. The body tells apart two notes on the same line."""
     r = await http.get(
         f"/repos/{repo}/pulls/{pr}/reviews/{review_id}/comments",
         params={"per_page": 100},
         headers={"Authorization": f"Bearer {token}"},
     )
     r.raise_for_status()
-    return {(c["path"], c["line"]): c["id"] for c in r.json() if c.get("line")}
+    return {(c["path"], c["line"], c["body"]): c["id"] for c in r.json() if c.get("line")}
 
 
 async def reply_to_comment(

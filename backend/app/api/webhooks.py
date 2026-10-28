@@ -112,7 +112,9 @@ async def _reply(payload: dict, redis, key: str, delivery: str) -> JSONResponse:
     try:
         comment = payload["comment"]
         root_id = comment.get("in_reply_to_id")
+        reply_id = int(comment["id"])
         user = comment["user"]
+        user_id = int(user["id"])
         repo = payload["repository"]["full_name"]
         pr = int(payload["pull_request"]["number"])
         author_id = int(payload["pull_request"]["user"]["id"])
@@ -123,7 +125,7 @@ async def _reply(payload: dict, redis, key: str, delivery: str) -> JSONResponse:
         return ignored
     if not isinstance(root_id, int) or user.get("type") == "Bot":
         return ignored  # not a reply, or a bot (DiffMate itself) talking
-    if comment.get("author_association") not in REPLY_ROLES and user.get("id") != author_id:
+    if comment.get("author_association") not in REPLY_ROLES and user_id != author_id:
         return ignored
     try:
         await enqueue_reply(
@@ -132,10 +134,10 @@ async def _reply(payload: dict, redis, key: str, delivery: str) -> JSONResponse:
             pr=pr,
             installation_id=installation_id,
             root_id=root_id,
-            reply_id=int(comment["id"]),
+            reply_id=reply_id,
             body=str(comment.get("body") or "")[:2000],
             diff_hunk=str(comment.get("diff_hunk") or "")[:4000],
-            user_id=int(user["id"]),
+            user_id=user_id,
         )
     except Exception:
         await redis.delete(key)

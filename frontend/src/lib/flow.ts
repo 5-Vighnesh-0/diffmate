@@ -103,24 +103,28 @@ export function playAt(tl: Timeline, r: number): number {
 
 export type Line = { n: number | null; kind: "same" | "del" | "add"; text: string };
 
-/** Lines of the pull request's file with each change shown as removed then added. */
+/** Lines of the pull request's file with the change shown as removed then added lines. The
+ * change is what lies between the lines both versions share at the start and at the end, so
+ * changes that add or remove lines work too. */
 export function changeOf(clean: string, after: string) {
   const before = clean.replace(/\n$/, "").split("\n");
   const now = after.replace(/\n$/, "").split("\n");
-  const lines: Line[] = [];
-  const removed: string[] = [];
-  const added: string[] = [];
-  let first = 0;
-  now.forEach((text, i) => {
-    if (text === before[i]) {
-      lines.push({ n: i + 1, kind: "same", text });
-      return;
-    }
-    if (!first) first = i + 1;
-    removed.push(before[i]);
-    lines.push({ n: null, kind: "del", text: before[i] });
-    added.push(text);
-    lines.push({ n: i + 1, kind: "add", text });
-  });
-  return { lines, first, removed, added };
+  let head = 0;
+  while (head < before.length && head < now.length && before[head] === now[head]) head++;
+  let tail = 0;
+  while (
+    tail < before.length - head &&
+    tail < now.length - head &&
+    before[before.length - 1 - tail] === now[now.length - 1 - tail]
+  )
+    tail++;
+  const removed = before.slice(head, before.length - tail);
+  const added = now.slice(head, now.length - tail);
+  const lines: Line[] = [
+    ...now.slice(0, head).map((text, i): Line => ({ n: i + 1, kind: "same", text })),
+    ...removed.map((text): Line => ({ n: null, kind: "del", text })),
+    ...added.map((text, i): Line => ({ n: head + i + 1, kind: "add", text })),
+    ...now.slice(now.length - tail).map((text, i): Line => ({ n: now.length - tail + i + 1, kind: "same", text })),
+  ];
+  return { lines, first: head + 1, removed, added };
 }

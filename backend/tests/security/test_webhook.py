@@ -292,3 +292,12 @@ async def test_other_review_comments_are_ignored(client, arq, payload):
 
     assert r.json() == {"status": "ignored"}
     assert arq.jobs == {}
+
+
+async def test_a_reply_without_a_comment_id_is_a_bad_payload_not_a_queue_outage(client, arq):
+    payload = reply_payload()
+    del payload["comment"]["id"]
+
+    r = await send(client, payload, event="pull_request_review_comment")
+
+    assert r.status_code == 400

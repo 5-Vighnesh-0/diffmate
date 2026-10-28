@@ -102,7 +102,7 @@ export function ReviewFlow({ still }: { still: boolean }) {
 
   // The catch: the scroll holds still while red wipes across the line and the header.
   const catchAt = playAt(tl, tl.hit);
-  const wipe = `inset(0 ${(1 - between(v, catchAt, catchAt + 0.5)) * 100}% 0 0)`;
+  const wipe = `scaleX(${between(v, catchAt, catchAt + 0.5)})`; // transform only (CLAUDE.md)
   const landed = between(v, catchAt + 0.6, catchAt + 1.1);
 
   const out = between(t, INTRO, INTRO + 0.9);
@@ -137,7 +137,7 @@ export function ReviewFlow({ still }: { still: boolean }) {
         <span className="chap">{latest(tl.chapters, t)}</span>
         <p>{latest(captions(tl), t)}</p>
         {inAi && !still && <span className="ff">Fast-forward: waiting for the AI</span>}
-        <i className="band" aria-hidden style={{ clipPath: wipe }} />
+        <i className="band" aria-hidden style={{ transform: wipe }} />
       </div>
       <div className="cols" data-side={still ? "both" : side}>
         <section className="rail" aria-labelledby="rail-h">
@@ -186,7 +186,7 @@ export function ReviewFlow({ still }: { still: boolean }) {
                 const outlined = l.kind === "add" && t >= INTRO + 0.9 && t < tl.hit;
                 return (
                   <li key={i} className={l.kind} style={{ visibility: hidden ? "hidden" : "visible" }}>
-                    {l.kind === "add" && l.n === c.line && <i className="slam" aria-hidden style={{ clipPath: wipe }} />}
+                    {l.kind === "add" && l.n === c.line && <i className="slam" aria-hidden style={{ transform: wipe }} />}
                     <span className="n">{l.n ?? ""}</span>
                     <span>{l.kind === "add" ? "+" : l.kind === "del" ? "-" : " "}</span>
                     <span className="t">{text || " "}</span>
