@@ -22,3 +22,9 @@ dist/
 skills-lock.json
 docs/superpowers/
 .claude/launch.json
+
+# Markdown stays on this machine only (decided by: Vighnesh), except the README and the
+# third-party license notice the benchmark excerpts require.
+*.md
+!/README.md
+!/benchmark/cases/THIRD_PARTY.md

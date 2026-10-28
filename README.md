@@ -15,7 +15,7 @@ Measured on 60 pull requests from 10 open-source projects, each with a known ans
 | False alarms per pull request | **0.00** | 0.00 |
 | Cost per review | $0 (≈ $0.003 at paid prices) | $0 (≈ $0.004) |
 
-When DiffMate comments, it has been right every time so far. It also misses most bugs, and says so. Full tables below and in [docs/benchmark.md](docs/benchmark.md).
+When DiffMate comments, it has been right every time so far. It also misses most bugs, and says so. Full tables below.
 
 ## How it works
 
@@ -42,14 +42,14 @@ flowchart LR
 ## What is in it
 
 - **The reviewer:** an agent loop on the Gemini Interactions API with function calling, stateless requests, and a forced final submit.
-- **Security:** HMAC webhook checks with replay protection, GitHub App tokens scoped to one repository, read-only tools confined to the checkout, untrusted PR text wrapped and defused against prompt injection (8 of 8 planted attacks resisted), GitHub login with PKCE and CSRF tokens, per-user authorization, rate limits, strict CSP. Every control names its test in [docs/threat-model.md](docs/threat-model.md).
+- **Security:** HMAC webhook checks with replay protection, GitHub App tokens scoped to one repository, read-only tools confined to the checkout, untrusted PR text wrapped and defused against prompt injection (8 of 8 planted attacks resisted), GitHub login with PKCE and CSRF tokens, per-user authorization, rate limits, strict CSP. Every control has a test.
 - **The benchmark:** 60 offline cases (35 planted bugs, 15 real bug fixes undone, 10 bug-free changes), a resumable runner, and a scorer that compares three setups. `make bench`.
 - **The frontend:** a scroll-driven landing page where your scroll moves a real recorded pull request through DiffMate, event by event with timestamps, until the comment lands on the bug; and a dashboard written for people new to code review.
 - **Tests:** 197 backend tests (unit, security, integration on real Postgres and Redis) and frontend tests, run in CI with pip-audit, pnpm audit, and gitleaks on the full history.
 
 ## Benchmark
 
-Three setups on the same cases: linters alone, the AI alone, and the AI with DiffMate's filters. Method, matching rule, and every run in [docs/benchmark.md](docs/benchmark.md).
+Three setups on the same cases: linters alone, the AI alone, and the AI with DiffMate's filters.
 
 Held-out set, run once:
 
@@ -102,30 +102,15 @@ make bench       # benchmark, tuning set (needs a free Gemini API key in .env)
 make injection   # live prompt-injection suite
 ```
 
-Hosting for $0 with no card (Render, Neon, UptimeRobot): [docs/runbooks/deploy.md](docs/runbooks/deploy.md).
+Hosting for $0 with no card: Render, Neon and UptimeRobot.
 
 ## Tech stack
 
 Python 3.12, FastAPI, SQLAlchemy 2 with Alembic, arq on Redis, Postgres, Gemini (`google-genai`), TypeScript, React 19, Vite, Motion, Vitest, Docker, GitHub Actions. Hosted on Render (free) with Neon Postgres (free).
 
-## Documentation
+## Security
 
-| Doc | What it covers |
-| --- | --- |
-| [docs/PRD.md](docs/PRD.md) | Product requirements |
-| [docs/PLAN.md](docs/PLAN.md) | Phased build plan and decisions |
-| [docs/architecture.md](docs/architecture.md) | Components, data flow, data model |
-| [docs/api.md](docs/api.md) | HTTP API |
-| [docs/threat-model.md](docs/threat-model.md) | Threats, controls, and the test for each |
-| [docs/benchmark.md](docs/benchmark.md) | Evaluation method and every run |
-| [docs/testing.md](docs/testing.md) | Test strategy and CI gates |
-| [docs/adr/](docs/adr/) | Architecture decisions |
-| [docs/runbooks/](docs/runbooks/) | GitHub App setup, deploy, secrets, incidents |
-| [docs/DESIGN.md](docs/DESIGN.md) | Design tokens and motion |
-| [scrollcraft/builds/diffmate-landing/BRIEF.md](scrollcraft/builds/diffmate-landing/BRIEF.md) | Landing page brief |
-| [reports/](reports/) | Phase reports and day-by-day logs |
-| [SECURITY.md](SECURITY.md) | Reporting vulnerabilities |
-| [CONTRIBUTING.md](CONTRIBUTING.md) | How to contribute |
+Please report vulnerabilities privately through GitHub's **Report a vulnerability** button on this repository's Security tab, not in a public issue.
 
 ## License
 
