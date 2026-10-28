@@ -19,6 +19,8 @@ When DiffMate comments, it has been right every time so far. It still misses som
 
 **Second look (2026-10-28):** when the first pass posts nothing, DiffMate now takes one focused second look (off-by-one, empty input, wrong operator, unsafe shell or SQL, unhandled errors). It raised recall from 30% to **60%** on the held-out set and from 55% to 68% on the tuning set, still with 100% precision and no false alarms, for about twice the AI requests on reviews that find nothing at first. Both runs reused the first-pass answers recorded on 2026-10-21 and re-checked only the cases where the first pass posted nothing.
 
+**Real-world check (2026-10-28):** on a 30-PR slice of GitHub's [ReviewBench](https://github.com/review-bench/ReviewBench) (real pull requests, a seeded random sample of its Python and TypeScript PRs), DiffMate found **3 of 303** known issues (**1%**); both of the notes it posted were correct. My own benchmark uses small files with one planted bug each, so it overstates what DiffMate catches on real, large pull requests. Matching here is by file and line, an approximation of ReviewBench's AI-judged scoring, so it is not comparable with its leaderboard. Results: `benchmark/results/reviewbench-gemini-3.5-flash-lite.jsonl`.
+
 ## How it works
 
 ```mermaid
