@@ -1180,3 +1180,14 @@ th {
     font-size: 11.5px;
   }
 }
+
+.live-run {
+  margin-top: 1rem;
+  max-width: 38rem;
+}
+
+.live-run p {
+  margin: 0.5rem 0 0;
+  font-size: 14px;
+  color: var(--muted);
+}

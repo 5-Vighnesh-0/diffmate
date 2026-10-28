@@ -41,6 +41,11 @@ class Settings(BaseSettings):
     frontend_dist: str = ""  # hosted: the built frontend, served from the API's own origin
     client_ip_header: str = "cf-connecting-ip"  # set by Cloudflare (tunnel); "" = direct peer
 
+    # Live demo (app/api/demo.py): a public sandbox repo and a fine-grained token for it only.
+    demo_repo: str = ""  # owner/name; empty = the landing page shows no live demo
+    demo_token: SecretStr = SecretStr("")
+    demo_daily_cap: int = 10  # each demo PR costs one review's free AI requests
+    demo_examples_file: str = "../frontend/src/lib/demo.json"  # hosted: /app/demo.json
     webhook_max_body_bytes: int = 1_048_576  # 1 MiB; PR event payloads are far smaller
     delivery_ttl_seconds: int = 7 * 24 * 3600  # how long a delivery ID counts as seen
 

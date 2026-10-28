@@ -30,6 +30,8 @@ COPY backend/alembic ./alembic
 COPY backend/app ./app
 COPY --from=eslint /eslint/node_modules ./app/checks/eslint/node_modules
 COPY --from=web /web/dist ./frontend-dist
+# The live demo plants the landing page's recorded examples (app/api/demo.py).
+COPY frontend/src/lib/demo.json ./demo.json
 
 RUN useradd --uid 1000 --create-home diffmate
 USER diffmate

@@ -138,4 +138,19 @@ describe("landing", () => {
     expect(screen.getByText(demo.breaks.shell.comments[0].explanation)).toBeTruthy();
     expect(screen.getByRole("button", { name: "tar through a shell" }).getAttribute("aria-pressed")).toBe("true");
   });
+
+  it("runs the picked example for real when the live demo is set up", async () => {
+    stubBrowser({ reduceMotion: true });
+    const fetch = fakeApi({
+      "GET /api/demo": () => json({ enabled: true }),
+      "POST /api/demo": () => json({ pr: 12, url: "https://github.com/me/sandbox/pull/12" }, 201),
+    });
+    render(<Landing />);
+
+    fireEvent.click(await screen.findByRole("button", { name: /for real on GitHub/ }));
+
+    expect(await screen.findByRole("link", { name: "Pull request #12" })).toBeTruthy();
+    const [, init] = fetch.mock.calls.find(([, i]) => i?.method === "POST")!;
+    expect(JSON.parse(String(init?.body))).toEqual({ example: "loop" });
+  });
 });

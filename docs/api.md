@@ -76,6 +76,16 @@ The signed-in user's own votes, limited to repos they can access: `{"useful": n,
 
 The landing page's results are bundled at build time from `frontend/src/lib/benchmark.json`, which `make bench-score` writes. They change only when the benchmark is re-run, so a live endpoint was dropped in Phase 5 (decided by: Vighnesh, 2026-10-21).
 
+## Live demo (no login)
+
+Off unless `DEMO_REPO` and `DEMO_TOKEN` are set; then a visitor can open a real pull request in that public sandbox repo with one of the landing page's recorded examples, and DiffMate (installed there) reviews it like any other.
+
+| Method and path | Purpose |
+| --- | --- |
+| `GET /api/demo` | `{"enabled": bool}` |
+| `POST /api/demo` | Body `{"example": "loop" \| "slice" \| "shell"}` and nothing else (`422` otherwise): visitors never send code or text. Closes demo PRs older than 30 minutes, then opens a new one: `201 {"pr", "url"}`. `404` when off; `429` past 3 a minute per visitor or `DEMO_DAILY_CAP` (10) a day in total. |
+| `GET /api/demo/{pr}` | `{"reviewed", "url", "comments": [{"line", "body"}]}`, DiffMate's comments only; the page polls it every 5 s. |
+
 ## Rate limits
 
 Per client IP and minute, counted in Redis: `/webhooks/*` 120, `/auth/*` and `/api/*` together 60. Over the limit: `429` with `Retry-After`. The client IP comes from `CF-Connecting-IP` (`CLIENT_IP_HEADER`), which is trusted because the API is reachable only through the tunnel or 127.0.0.1.

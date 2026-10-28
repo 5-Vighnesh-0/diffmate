@@ -61,5 +61,13 @@ pytest → 214 passed · ruff → All checks passed!
 pytest → 226 passed · ruff → All checks passed!
 ```
 
+**Day 7: 2026-10-28**
+
+**Plant a bug for real (step 5)**
+- `backend/app/api/demo.py`: `GET/POST /api/demo`, `GET /api/demo/{pr}`; fixed examples read from `frontend/src/lib/demo.json` (copied into the image); sandbox token is a fine-grained token for one public repo (Vighnesh to create); `frontend/src/components/LiveRun.tsx` button and live status. Off until configured.
+```
+pytest → 232 passed · ruff → All checks passed! · vitest → 12 passed · pnpm build → ok
+```
+
 **Next**
 - Push after approval. Then, in order: one-click fixes, talk back, better catch rate (benchmark), plant a bug for real.

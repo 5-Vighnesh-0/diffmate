@@ -13,7 +13,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException
 
-from app.api import auth, findings, health, runs, webhooks
+from app.api import auth, demo, findings, health, runs, webhooks
 from app.core.config import get_settings
 from app.core.logging import setup_logging
 from app.core.ratelimit import rate_limit
@@ -95,6 +95,7 @@ def create_app() -> FastAPI:
     app.include_router(auth.router, dependencies=dashboard_limit)
     app.include_router(runs.router, dependencies=dashboard_limit)
     app.include_router(findings.router, dependencies=dashboard_limit)
+    app.include_router(demo.router, dependencies=[Depends(rate_limit("demo", 20))])
     if settings.frontend_dist:
         serve_frontend(app, Path(settings.frontend_dist))
     return app

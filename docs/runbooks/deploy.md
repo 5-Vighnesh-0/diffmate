@@ -96,6 +96,14 @@ Under **Permissions & events, Subscribe to events**, tick **Pull request** and *
 
 Save. From now on GitHub sends pull request events to Render, not to your laptop.
 
+### Optional: the live demo on the landing page
+
+1. On GitHub, create a **public** repository, for example `diffmate-sandbox`, with a README so it has a `main` branch.
+2. Install DiffMate on it (the install link on the landing page) and pick only that repository.
+3. Create a fine-grained token: **Settings, Developer settings, Personal access tokens, Fine-grained tokens, Generate new token**. Repository access: **Only select repositories**, the sandbox. Permissions: **Contents: Read and write**, **Pull requests: Read and write**. Expiry: your choice (90 days is fine).
+4. In Render, **Environment**: set `DEMO_REPO` to `your-name/diffmate-sandbox` and `DEMO_TOKEN` to the token. Never paste it anywhere else.
+5. Save; Render redeploys. The landing page now shows "Run ... for real on GitHub" under the examples. Remove the two values to turn it off.
+
 ### 5. Keep it awake (UptimeRobot)
 
 Render's free server sleeps after 15 minutes without visits and takes about a minute to wake, which is longer than GitHub waits. A free pinger visits every 5 minutes so it never sleeps.

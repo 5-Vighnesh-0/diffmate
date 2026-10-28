@@ -50,6 +50,16 @@ services:
         value: "400"
       - key: LLM_REQUESTS_PER_MINUTE
         value: "12"
+      # Live demo (optional): a public sandbox repo with DiffMate installed, and a fine-grained
+      # token for that repo only (contents and pull requests: write). Unset = no live demo.
+      - key: DEMO_REPO
+        sync: false
+      - key: DEMO_TOKEN
+        sync: false
+      - key: DEMO_DAILY_CAP
+        value: "10"
+      - key: DEMO_EXAMPLES_FILE
+        value: /app/demo.json
 
   - type: keyvalue
     name: diffmate-redis

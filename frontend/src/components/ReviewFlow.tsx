@@ -1,6 +1,7 @@
 import { useMotionValueEvent, useScroll } from "motion/react";
 import { type ReactNode, useMemo, useRef, useState } from "react";
 import demo from "../lib/demo.json";
+import { LiveRun } from "./LiveRun";
 import { changeOf, INTRO, playAt, realAt, timeline, type Step, type Timeline } from "../lib/flow";
 
 // Scroll flow: the visitor's scroll moves one recorded pull request through DiffMate.
@@ -319,6 +320,7 @@ export function ReviewFlow({ still }: { still: boolean }) {
             </button>
           ))}
         </div>
+        <LiveRun example={ex.key} label={ex.label} />
       </div>
       {still ? (
         stage
