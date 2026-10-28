@@ -17,6 +17,8 @@ Measured on 60 pull requests from 10 open-source projects, each with a known ans
 
 When DiffMate comments, it has been right every time so far. It also misses most bugs, and says so. Full tables below.
 
+**Second look (2026-10-28):** when the first pass posts nothing, DiffMate now takes one focused second look (off-by-one, empty input, wrong operator, unsafe shell or SQL, unhandled errors). On the tuning set this raised recall from 55% to **68%**, still with 100% precision and no false alarms, for 49% more free AI requests. The held-out numbers above are from before this change.
+
 ## How it works
 
 ```mermaid
@@ -83,7 +85,7 @@ What the numbers taught: the first run found 27% of bugs because the AI sometime
 
 - It misses most bugs. Divide-by-zero mistakes are a consistent blind spot for the free model.
 - It runs on Gemini's free tier, where Google may use what it receives to improve its products, so it reviews public repositories only. Pull requests in private repositories are ignored.
-- One free daily AI limit (about 50 to 80 reviews a day) is shared by everyone using this deployment.
+- One free daily AI limit (about 40 to 80 reviews a day; reviews that find nothing at first take a second look) is shared by everyone using this deployment.
 - The free server may restart at any time; people sign in again, and reviews and votes are kept.
 
 ## Run it yourself

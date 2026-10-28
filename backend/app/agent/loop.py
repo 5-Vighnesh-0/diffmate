@@ -40,6 +40,22 @@ class _State:
     requests: int = 0
 
 
+def with_second_look(first: AgentResult, second: AgentResult) -> AgentResult:
+    """One run's result from both passes. The first pass's stop reason stands: if the second
+    look is cut short (daily cap, step cap), the first pass's clean answer is still valid."""
+    b = first.budget
+    b.tokens_in += second.budget.tokens_in
+    b.tokens_out += second.budget.tokens_out
+    return AgentResult(
+        first.findings + second.findings,
+        first.invalid + second.invalid,
+        first.trace + second.trace,
+        b,
+        first.stop_reason,
+        first.llm_requests + second.llm_requests,
+    )
+
+
 def _summary(name: str, args: dict) -> str:
     if name == "submit_findings":
         items = args.get("findings")

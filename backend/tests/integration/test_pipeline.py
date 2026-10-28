@@ -441,3 +441,30 @@ async def test_a_withdrawn_note_is_not_argued_about_again(sessionmaker):
     await answer_reply(c, "o/r", 7, 42, 100, "still wrong?", "@@", 9)
 
     assert llm.calls == 1 and replies == ["You are right."]
+
+
+async def test_a_review_that_finds_nothing_takes_one_focused_second_look(sessionmaker, session):
+    llm = FakeLLM(
+        [
+            ("submit_findings", {"findings": []}),  # first pass: nothing
+            ("submit_findings", {"findings": [finding(2, 0.9)]}),  # second look finds the bug
+        ]
+    )
+    reviews = []
+
+    await review_pr(ctx(sessionmaker, llm, reviews), "o/r", 7, SHA, 42)
+
+    assert llm.calls == 2
+    assert [c["line"] for c in reviews[0]["comments"]] == [2]
+    run = (await session.execute(select(Run))).scalar_one()
+    assert (run.status, run.llm_requests) == ("done", 2)
+    steps = (await session.execute(select(TraceStep).order_by(TraceStep.step_no))).scalars().all()
+    assert [s.step_no for s in steps] == [1, 2]
+
+
+async def test_no_second_look_when_the_first_pass_already_posted(sessionmaker):
+    llm = reviewing_llm()
+
+    await review_pr(ctx(sessionmaker, llm, []), "o/r", 7, SHA, 42)
+
+    assert llm.calls == 2  # read_file + submit, nothing more

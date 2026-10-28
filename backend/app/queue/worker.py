@@ -15,8 +15,8 @@ from sqlalchemy.dialects.postgresql import insert
 from app.agent.budget import Budget, DailyCap, estimated_cost_usd
 from app.agent.filters import filter_findings
 from app.agent.llm import GeminiLLM, LlmRateLimited
-from app.agent.loop import AgentResult, run_agent
-from app.agent.prompts import build_context
+from app.agent.loop import AgentResult, run_agent, with_second_look
+from app.agent.prompts import LOOK_AGAIN, build_context
 from app.agent.reply import (
     ANSWER_TOOL,
     REPLY_PROMPT,
@@ -190,25 +190,6 @@ async def _review(ctx, token: str, run_id: int, repo: str, pr: int, sha: str, in
         await save_result(ctx["db"], run_id, "done")
         return
 
-    started = time.monotonic()
-    # The checkout lives only for this run; the folder is deleted on exit (no code is stored).
-    with tempfile.TemporaryDirectory(prefix="diffmate-") as tmp:
-        root = await checkout(http, token, repo, sha, Path(tmp))
-        hints = await run_linters(root, [f.path for f in files])
-        context = build_context(info.title, info.body, files, [str(h) for h in hints])
-        result = await run_agent(
-            llm,
-            Tools(root, files),
-            context,
-            Budget(settings.agent_max_steps, settings.agent_max_tokens),
-            DailyCap(
-                ctx["redis"],
-                settings.llm_daily_request_cap,
-                settings.llm_requests_per_minute,
-                model=settings.llm_model,
-            ),
-        )
-
     async with ctx["db"]() as s:
         repo_id = await s.scalar(
             select(PullRequest.repo_id)
@@ -216,14 +197,42 @@ async def _review(ctx, token: str, run_id: int, repo: str, pr: int, sha: str, in
             .where(Run.id == run_id)
         )
         stricter = {v.category for v in (await stricter_categories(s, [repo_id])).get(repo_id, [])}
-    statuses = filter_findings(
-        result.findings,
-        {f.path: f.lines for f in files},
-        settings.confidence_threshold,
-        settings.comment_cap,
-        stricter,
-        settings.strict_confidence_threshold,
+    commentable = {f.path: f.lines for f in files}
+
+    def filtered(result: AgentResult):
+        return filter_findings(
+            result.findings,
+            commentable,
+            settings.confidence_threshold,
+            settings.comment_cap,
+            stricter,
+            settings.strict_confidence_threshold,
+        )
+
+    started = time.monotonic()
+    cap = DailyCap(
+        ctx["redis"],
+        settings.llm_daily_request_cap,
+        settings.llm_requests_per_minute,
+        model=settings.llm_model,
     )
+    budget = lambda: Budget(settings.agent_max_steps, settings.agent_max_tokens)  # noqa: E731
+    # The checkout lives only for this run; the folder is deleted on exit (no code is stored).
+    with tempfile.TemporaryDirectory(prefix="diffmate-") as tmp:
+        root = await checkout(http, token, repo, sha, Path(tmp))
+        hints = await run_linters(root, [f.path for f in files])
+        context = build_context(info.title, info.body, files, [str(h) for h in hints])
+        result = await run_agent(llm, Tools(root, files), context, budget(), cap)
+        statuses = filtered(result)
+        # A first pass that finished and posted nothing gets one focused second look: on the
+        # benchmark's tuning set this raised recall from 55% to 68% with no false alarms.
+        if result.stop_reason == "submitted" and not any(s == "posted" for _, s in statuses):
+            second = await run_agent(
+                llm, Tools(root, files), f"{context}\n\n{LOOK_AGAIN}", budget(), cap
+            )
+            result = with_second_look(result, second)
+            statuses = filtered(result)
+
     comment_ids = None
     early = STOPPED_EARLY.get(result.stop_reason)
     if result.stop_reason in ("daily_cap", "rate_limited"):
