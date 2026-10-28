@@ -14,19 +14,33 @@ from sqlalchemy.dialects.postgresql import insert
 
 from app.agent.budget import Budget, DailyCap, estimated_cost_usd
 from app.agent.filters import filter_findings
-from app.agent.llm import GeminiLLM
+from app.agent.llm import GeminiLLM, LlmRateLimited
 from app.agent.loop import AgentResult, run_agent
 from app.agent.prompts import build_context
+from app.agent.reply import (
+    ANSWER_TOOL,
+    REPLY_PROMPT,
+    build_reply_context,
+    parse_answer,
+)
+from app.agent.reply import (
+    MAX_OUTPUT_TOKENS as REPLY_MAX_TOKENS,
+)
 from app.agent.tools import Tools
 from app.checks.linters import run_linters
 from app.core.config import get_settings
 from app.core.logging import setup_logging
-from app.db.models import Finding, Installation, PullRequest, Repo, Run, TraceStep
+from app.db.models import Feedback, Finding, Installation, PullRequest, Repo, Run, TraceStep
 from app.db.session import make_engine, make_sessionmaker
 from app.db.votes import stricter_categories
 from app.github.app_auth import get_installation_token, make_app_jwt
 from app.github.client import github_http
-from app.github.comments import post_review
+from app.github.comments import (
+    post_review,
+    reply_to_comment,
+    review_comment_ids,
+    withdraw_comment,
+)
 from app.github.diff import PullInfo, checkout, get_pr_files, get_pull_request
 
 log = logging.getLogger(__name__)
@@ -114,6 +128,7 @@ async def save_result(
     result: AgentResult | None = None,
     statuses=(),
     error: str | None = None,
+    comment_ids: dict[tuple[str, int], int] | None = None,
 ) -> None:
     async with db() as s, s.begin():
         values = {"status": status, "finished_at": sql.now(), "error": error}
@@ -126,11 +141,15 @@ async def save_result(
                 "est_cost_usd": estimated_cost_usd(model, b.tokens_in, b.tokens_out),
             }
             for f, finding_status in statuses:
+                posted = finding_status == "posted"
                 s.add(
                     Finding(
                         run_id=run_id,
                         source="agent",
                         status=finding_status,
+                        github_comment_id=(comment_ids or {}).get((f.file, f.line))
+                        if posted
+                        else None,
                         **f.model_dump(exclude={"fix"}),
                     )
                 )
@@ -192,12 +211,18 @@ async def _review(ctx, token: str, run_id: int, repo: str, pr: int, sha: str, in
         stricter,
         settings.strict_confidence_threshold,
     )
+    comment_ids = None
     if result.stop_reason in ("daily_cap", "rate_limited"):
         status = "paused_daily_cap"  # nothing is posted; a later delivery can resume it
     else:
         status = "done"
-        await post_review(http, token, repo, pr, sha, [f for f, s in statuses if s == "posted"])
-    await save_result(ctx["db"], run_id, status, settings.llm_model, result, statuses)
+        posted = [f for f, s in statuses if s == "posted"]
+        review_id = await post_review(http, token, repo, pr, sha, posted)
+        if review_id is not None:  # remembered so a reply can be traced back to its note
+            comment_ids = await review_comment_ids(http, token, repo, pr, review_id)
+    await save_result(
+        ctx["db"], run_id, status, settings.llm_model, result, statuses, comment_ids=comment_ids
+    )
     log.info(
         "review %s#%s@%s %s: %s posted, stop=%s, %d ms",
         repo,
@@ -248,6 +273,77 @@ async def review_pr(ctx, repo: str, pr: int, sha: str, installation_id: int) -> 
         await save_result(ctx["db"], run_id, "failed", error=type(e).__name__)
 
 
+MAX_ANSWERS_PER_NOTE = 3  # one thread cannot spend more of the free AI quota than this
+
+
+async def answer_reply(
+    ctx,
+    repo: str,
+    pr: int,
+    installation_id: int,
+    root_id: int,
+    body: str,
+    diff_hunk: str,
+    user_id: int,
+) -> None:
+    """Someone replied to a DiffMate note: stand by it with a reason, or withdraw it. A
+    withdrawal also counts as that person's Not useful vote (decided by: Vighnesh)."""
+    settings, llm = ctx["settings"], ctx["llm"]
+    async with ctx["db"]() as s:
+        note = await s.scalar(
+            select(Finding)
+            .join(Run, Run.id == Finding.run_id)
+            .join(PullRequest, PullRequest.id == Run.pull_request_id)
+            .join(Repo, Repo.id == PullRequest.repo_id)
+            .where(Finding.github_comment_id == root_id, Repo.full_name == repo)
+        )
+    if note is None or llm is None:
+        return  # not a reply to one of DiffMate's notes
+    answers = await ctx["redis"].incr(f"answers:{note.id}")
+    await ctx["redis"].expire(f"answers:{note.id}", 30 * 24 * 3600)
+    if answers > MAX_ANSWERS_PER_NOTE:
+        log.info("reply on note %s ignored: answer limit reached", note.id)
+        return
+    cap = DailyCap(
+        ctx["redis"],
+        settings.llm_daily_request_cap,
+        settings.llm_requests_per_minute,
+        model=settings.llm_model,
+    )
+    if not await cap.take():
+        log.info("reply on note %s not answered: daily AI cap reached", note.id)
+        return
+    context = build_reply_context(note.explanation, note.file, note.line, diff_hunk, body)
+    history = [{"type": "user_input", "content": [{"type": "text", "text": context}]}]
+    try:
+        step = await llm.step(REPLY_PROMPT, history, [ANSWER_TOOL], REPLY_MAX_TOKENS)
+    except LlmRateLimited:
+        log.info("reply on note %s not answered: AI rate limited", note.id)
+        return
+    answer = parse_answer(step.calls)
+    if answer is None:
+        log.info("reply on note %s: no valid answer from the AI", note.id)
+        return
+
+    http = ctx["http"]
+    token = await get_installation_token(
+        http, ctx["app_jwt"](), installation_id, repo.split("/")[1]
+    )
+    await reply_to_comment(http, token, repo, pr, root_id, answer.reply)
+    if answer.verdict == "withdraw":
+        await withdraw_comment(http, token, repo, root_id, note.explanation)
+        async with ctx["db"]() as s, s.begin():
+            await s.execute(
+                insert(Feedback)
+                .values(finding_id=note.id, github_user_id=user_id, verdict="reject")
+                .on_conflict_do_update(
+                    index_elements=["finding_id", "github_user_id"],
+                    set_={"verdict": "reject", "created_at": sql.now()},
+                )
+            )
+    log.info("answered reply on note %s: %s", note.id, answer.verdict)
+
+
 async def startup(ctx) -> None:
     setup_logging()
     settings = get_settings()
@@ -279,7 +375,7 @@ async def shutdown(ctx) -> None:
 
 
 class WorkerSettings:
-    functions = [func(review_pr, max_tries=MAX_TRIES)]
+    functions = [func(review_pr, max_tries=MAX_TRIES), func(answer_reply, max_tries=1)]
     on_startup = startup
     on_shutdown = shutdown
     redis_settings = RedisSettings.from_dsn(get_settings().redis_url)

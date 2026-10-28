@@ -242,3 +242,53 @@ async def test_non_object_or_incomplete_payload_gets_400(client, arq, payload):
 
     assert r.status_code == 400
     assert arq.jobs == {}
+
+
+def reply_payload(
+    association="MEMBER", user_id=5, user_type="User", in_reply_to=100, private=False
+):
+    return {
+        "action": "created",
+        "comment": {
+            "id": 300,
+            "in_reply_to_id": in_reply_to,
+            "body": "this is fine",
+            "diff_hunk": "@@ -1 +1 @@",
+            "author_association": association,
+            "user": {"id": user_id, "type": user_type},
+        },
+        "pull_request": {"number": 7, "user": {"id": 1}},
+        "repository": {"full_name": "o/r", "private": private},
+        "installation": {"id": 42},
+    }
+
+
+async def test_a_member_reply_to_a_review_comment_queues_one_answer(client, arq):
+    r = await send(client, reply_payload(), event="pull_request_review_comment")
+
+    assert r.status_code == 202
+    assert arq.jobs == {
+        "reply:o/r:300": ("answer_reply", ("o/r", 7, 42, 100, "this is fine", "@@ -1 +1 @@", 5))
+    }
+
+
+async def test_the_pr_author_may_reply_even_without_a_repo_role(client, arq):
+    r = await send(client, reply_payload("NONE", user_id=1), event="pull_request_review_comment")
+
+    assert r.status_code == 202
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        reply_payload("NONE"),  # a stranger on a public repo
+        reply_payload(user_type="Bot"),  # DiffMate itself
+        reply_payload(in_reply_to=None),  # a new comment, not a reply
+        reply_payload(private=True),
+    ],
+)
+async def test_other_review_comments_are_ignored(client, arq, payload):
+    r = await send(client, payload, event="pull_request_review_comment")
+
+    assert r.json() == {"status": "ignored"}
+    assert arq.jobs == {}

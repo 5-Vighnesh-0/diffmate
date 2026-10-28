@@ -92,6 +92,8 @@ On GitHub: **Settings, Developer settings, GitHub Apps, DiffMate, Edit**:
 - **Callback URL:** `https://<your address>/auth/callback`
 - **Webhook URL:** `https://<your address>/webhooks/github`
 
+Under **Permissions & events, Subscribe to events**, tick **Pull request** and **Pull request review comment** (the second lets DiffMate answer replies to its notes; it needs no new permission).
+
 Save. From now on GitHub sends pull request events to Render, not to your laptop.
 
 ### 5. Keep it awake (UptimeRobot)

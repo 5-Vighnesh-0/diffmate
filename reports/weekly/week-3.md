@@ -54,5 +54,12 @@ pytest → 210 passed · ruff → All checks passed! · vitest → 11 passed · 
 pytest → 214 passed · ruff → All checks passed!
 ```
 
+**Talk back (step 3)**
+- Webhook accepts `pull_request_review_comment` replies (PR author or OWNER/MEMBER/COLLABORATOR only, decided by: Vighnesh); worker job `answer_reply` (one AI request, `answer` tool: stand or withdraw); withdraw strikes the note through and records a Not useful vote (decided by: Vighnesh); at most 3 answers per note. Posted findings now store `github_comment_id` (column already existed: no migration).
+- Correction: no permission change needed (pull requests: write already covers replies); Vighnesh must tick the "Pull request review comment" event in the App settings.
+```
+pytest → 226 passed · ruff → All checks passed!
+```
+
 **Next**
 - Push after approval. Then, in order: one-click fixes, talk back, better catch rate (benchmark), plant a bug for real.

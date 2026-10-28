@@ -36,10 +36,11 @@ def marker(sha: str) -> str:
 
 async def post_review(
     http: httpx.AsyncClient, token: str, repo: str, pr: int, sha: str, findings: list[Finding]
-) -> bool:
-    """Post one COMMENT review with inline comments. False if nothing to post or already posted."""
+) -> int | None:
+    """Post one COMMENT review with inline comments; its id, or None if nothing to post or
+    already posted."""
     if not findings:
-        return False
+        return None
     auth = {"Authorization": f"Bearer {token}"}
     r = await http.get(f"/repos/{repo}/pulls/{pr}/reviews", params={"per_page": 100}, headers=auth)
     r.raise_for_status()
@@ -49,7 +50,7 @@ async def post_review(
         and (review.get("user") or {}).get("type") == "Bot"
         for review in r.json()
     ):
-        return False  # a previous try already posted this commit's review
+        return None  # a previous try already posted this commit's review
 
     noun = "finding" if len(findings) == 1 else "findings"
     body = f"DiffMate reviewed `{sha[:7]}`: {len(findings)} {noun}.\n\n{marker(sha)}"
@@ -63,4 +64,41 @@ async def post_review(
         json={"commit_id": sha, "event": "COMMENT", "body": body, "comments": comments},
     )
     r.raise_for_status()
-    return True
+    return r.json()["id"]
+
+
+async def review_comment_ids(
+    http: httpx.AsyncClient, token: str, repo: str, pr: int, review_id: int
+) -> dict[tuple[str, int], int]:
+    """GitHub's id for each inline comment of a review, by (file, line): replies point to it."""
+    r = await http.get(
+        f"/repos/{repo}/pulls/{pr}/reviews/{review_id}/comments",
+        params={"per_page": 100},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    r.raise_for_status()
+    return {(c["path"], c["line"]): c["id"] for c in r.json() if c.get("line")}
+
+
+async def reply_to_comment(
+    http: httpx.AsyncClient, token: str, repo: str, pr: int, comment_id: int, text: str
+) -> None:
+    r = await http.post(
+        f"/repos/{repo}/pulls/{pr}/comments/{comment_id}/replies",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"body": plain(text)},
+    )
+    r.raise_for_status()
+
+
+async def withdraw_comment(
+    http: httpx.AsyncClient, token: str, repo: str, comment_id: int, explanation: str
+) -> None:
+    """Strike through DiffMate's own note after it agreed it was wrong."""
+    body = f"**Withdrawn:** DiffMate agreed this note was wrong.\n\n~~{plain(explanation)}~~"
+    r = await http.patch(
+        f"/repos/{repo}/pulls/comments/{comment_id}",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"body": body},
+    )
+    r.raise_for_status()

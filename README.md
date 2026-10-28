@@ -36,7 +36,7 @@ flowchart LR
 
 1. A GitHub App sends a webhook when a pull request is opened or updated. The API checks its signature, ignores replays, and queues one job per commit.
 2. The worker downloads that commit and gives the AI four read-only tools: read a file, search the repository, view part of the diff, and find related tests. Hard caps: 8 steps, 60k tokens, and a daily request limit.
-3. Findings are filtered (only on changed lines, confidence 70% or more, or 90% for kinds of notes the repo's votes marked mostly not useful; no duplicates; at most 5) and posted as one review. When DiffMate is 95% sure and knows the fix, the comment includes a GitHub suggestion the author can commit in one click; DiffMate itself never changes code.
+3. Findings are filtered (only on changed lines, confidence 70% or more, or 90% for kinds of notes the repo's votes marked mostly not useful; no duplicates; at most 5) and posted as one review. When DiffMate is 95% sure and knows the fix, the comment includes a GitHub suggestion the author can commit in one click; DiffMate itself never changes code. Reply to one of its notes and it answers in the thread: it explains why it stands by the note, or agrees it was wrong, strikes the note through, and counts that as a Not useful vote.
 4. The dashboard shows every review in plain language, each note with Useful / Not useful buttons, and the AI's steps. Your votes become your own accuracy score.
 
 ## What is in it

@@ -6,6 +6,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: no
 
 ### Added
 
+- Talk back: reply to a DiffMate note and it answers in the thread, standing by the note with a reason or withdrawing it (struck through, and counted as your Not useful vote). Only the PR author and repo members can trigger it, at most 3 answers per note, within the daily AI cap. Posted notes now remember their GitHub comment id. Needs the GitHub App to subscribe to "Pull request review comment" events.
 - One-click fixes: when DiffMate is 95% sure and knows the fix (at most 10 lines), its comment includes a GitHub suggestion the author can commit with one click, marked "check it before committing". The fix is not stored.
 - Learn from votes: when people on a repo mark at least 2 of 3 notes of one kind Not useful (3 votes or more), DiffMate needs 90% confidence instead of 70% before posting that kind there. It never silences a kind, and it relaxes again when later votes are useful. The dashboard lists these stricter kinds; a held-back note says why on the run page. Migration 0003 adds the `dropped_stricter` status.
 

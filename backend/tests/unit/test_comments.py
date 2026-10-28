@@ -3,7 +3,7 @@ import json
 import httpx
 
 from app.agent.schemas import Finding
-from app.github.comments import format_comment, post_review
+from app.github.comments import format_comment, post_review, reply_to_comment, withdraw_comment
 
 SHA = "a" * 40
 F = Finding(
@@ -53,7 +53,7 @@ def github(existing_reviews):
 async def test_post_review_sends_one_comment_review_with_inline_comments():
     http, posted = github([])
 
-    assert await post_review(http, "t", "o/r", 7, SHA, [F]) is True
+    assert await post_review(http, "t", "o/r", 7, SHA, [F]) == 99
 
     review = posted[0]
     assert review["event"] == "COMMENT"
@@ -68,14 +68,14 @@ async def test_a_retry_never_posts_a_second_review_for_the_same_commit():
     ours = {"body": f"DiffMate review\n<!-- diffmate:{SHA} -->", "user": {"type": "Bot"}}
     http, posted = github([ours])
 
-    assert await post_review(http, "t", "o/r", 7, SHA, [F]) is False
+    assert await post_review(http, "t", "o/r", 7, SHA, [F]) is None
     assert posted == []
 
 
 async def test_nothing_is_posted_when_there_are_no_findings():
     http, posted = github([])
 
-    assert await post_review(http, "t", "o/r", 7, SHA, []) is False
+    assert await post_review(http, "t", "o/r", 7, SHA, []) is None
     assert posted == []
 
 
@@ -83,7 +83,7 @@ async def test_a_marker_in_a_human_review_does_not_suppress_posting():
     forged = {"body": f"<!-- diffmate:{SHA} -->", "user": {"type": "User", "login": "author"}}
     http, posted = github([forged])
 
-    assert await post_review(http, "t", "o/r", 7, SHA, [F]) is True
+    assert await post_review(http, "t", "o/r", 7, SHA, [F]) == 99
     assert len(posted) == 1
 
 
@@ -105,3 +105,21 @@ def test_a_very_sure_note_with_a_fix_offers_a_one_click_suggestion():
 def test_no_suggestion_when_the_note_is_not_sure_enough_or_has_no_fix():
     assert "```suggestion" not in format_comment(F.model_copy(update={"fix": "x = 1"}))  # 90%
     assert "```suggestion" not in format_comment(F.model_copy(update={"confidence": 0.99}))
+
+
+async def test_a_reply_and_a_withdrawal_are_plain_text():
+    sent = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        sent.append((request.method, request.url.path, json.loads(request.content)))
+        return httpx.Response(200, json={})
+
+    http = httpx.AsyncClient(transport=httpx.MockTransport(handler), base_url="https://x")
+    await reply_to_comment(http, "t", "o/r", 7, 100, "Fair point, see https://x.example @admin")
+    await withdraw_comment(http, "t", "o/r", 100, "Divides by zero.")
+
+    (m1, p1, b1), (m2, p2, b2) = sent
+    assert (m1, p1) == ("POST", "/repos/o/r/pulls/7/comments/100/replies")
+    assert "https://" not in b1["body"] and "@admin" not in b1["body"]
+    assert (m2, p2) == ("PATCH", "/repos/o/r/pulls/comments/100")
+    assert b2["body"].startswith("**Withdrawn:**") and "~~Divides by zero.~~" in b2["body"]

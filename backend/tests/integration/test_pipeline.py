@@ -9,7 +9,7 @@ from sqlalchemy import select, text
 
 from app.agent.llm import LlmStep, ToolCall
 from app.db.models import Feedback, Finding, Installation, PullRequest, Repo, Run, TraceStep
-from app.queue.worker import review_pr
+from app.queue.worker import answer_reply, review_pr
 
 SHA = "a" * 40
 PATCH = "@@ -1,2 +1,3 @@\n def div(a, b):\n-    return a / b\n+    return a // b\n+x = 1"
@@ -66,7 +66,10 @@ def tarball() -> bytes:
     return buf.getvalue()
 
 
-def fake_github(reviews: list, private=False):
+def fake_github(reviews: list, private=False, replies=None, edits=None):
+    replies = [] if replies is None else replies
+    edits = [] if edits is None else edits
+
     def handler(request: httpx.Request) -> httpx.Response:
         path, method = request.url.path, request.method
         if path.endswith("/access_tokens"):
@@ -89,12 +92,25 @@ def fake_github(reviews: list, private=False):
         if path == "/repos/o/r/pulls/7/reviews" and method == "POST":
             reviews.append(json.loads(request.content))
             return httpx.Response(200, json={"id": 1})
+        if path == "/repos/o/r/pulls/7/reviews/1/comments":
+            comments = reviews[-1]["comments"] if reviews else []
+            listed = [
+                {"id": 100 + i, "path": c["path"], "line": c["line"]}
+                for i, c in enumerate(comments)
+            ]
+            return httpx.Response(200, json=listed)
+        if path.startswith("/repos/o/r/pulls/7/comments/") and path.endswith("/replies"):
+            replies.append(json.loads(request.content)["body"])
+            return httpx.Response(201, json={})
+        if path.startswith("/repos/o/r/pulls/comments/") and method == "PATCH":
+            edits.append((int(path.rsplit("/", 1)[1]), json.loads(request.content)["body"]))
+            return httpx.Response(200, json={})
         return httpx.Response(404, json={})
 
     return httpx.AsyncClient(transport=httpx.MockTransport(handler), base_url="https://x")
 
 
-def ctx(sessionmaker, llm, reviews, cap=100, private=False):
+def ctx(sessionmaker, llm, reviews, cap=100, private=False, replies=None, edits=None):
     settings = SimpleNamespace(
         llm_model="gemini-3.8-flash",
         llm_daily_request_cap=cap,
@@ -106,7 +122,7 @@ def ctx(sessionmaker, llm, reviews, cap=100, private=False):
         comment_cap=5,
     )
     return {
-        "http": fake_github(reviews, private),
+        "http": fake_github(reviews, private, replies, edits),
         "app_jwt": lambda: "jwt",
         "job_try": 1,
         "settings": settings,
@@ -308,3 +324,68 @@ async def test_a_sure_note_with_a_fix_is_posted_as_a_one_click_suggestion(sessio
     assert "```suggestion\n    return a / b\n```" in reviews[0]["comments"][0]["body"]
     stored = (await session.execute(select(Finding))).scalar_one()
     assert (stored.line, stored.status) == (2, "posted")
+
+
+async def reviewed(sessionmaker, replies, edits):
+    """Run one review that posts a note on calc.py line 2; return the context to reuse."""
+    reviews = []
+    c = ctx(sessionmaker, reviewing_llm(), reviews, replies=replies, edits=edits)
+    await review_pr(c, "o/r", 7, SHA, 42)
+    return c
+
+
+def answering(*answers):
+    return FakeLLM([("answer", {"verdict": v, "reply": r}) for v, r in answers])
+
+
+async def test_posted_notes_remember_their_github_comment(sessionmaker, session):
+    await reviewed(sessionmaker, [], [])
+
+    posted = (await session.execute(select(Finding).where(Finding.status == "posted"))).scalar_one()
+    assert posted.github_comment_id == 100
+
+
+async def test_diffmate_stands_by_a_note_with_a_reason(sessionmaker, session):
+    replies, edits = [], []
+    c = await reviewed(sessionmaker, replies, edits)
+    c["llm"] = answering(("stand", "b can be 0 when the list is empty, so this still fails."))
+
+    await answer_reply(c, "o/r", 7, 42, 100, "b is never 0 here", "@@ hunk", 9)
+
+    assert replies == ["b can be 0 when the list is empty, so this still fails."]
+    assert edits == []
+    assert (await session.execute(select(Feedback))).scalars().all() == []
+
+
+async def test_diffmate_withdraws_a_wrong_note_and_counts_it_as_not_useful(sessionmaker, session):
+    replies, edits = [], []
+    c = await reviewed(sessionmaker, replies, edits)
+    c["llm"] = answering(("withdraw", "You are right, the caller checks b first."))
+
+    await answer_reply(c, "o/r", 7, 42, 100, "the caller checks b", "@@ hunk", 9)
+
+    assert replies == ["You are right, the caller checks b first."]
+    assert edits[0][0] == 100 and edits[0][1].startswith("**Withdrawn:**")
+    vote = (await session.execute(select(Feedback))).scalar_one()
+    assert (vote.github_user_id, vote.verdict) == (9, "reject")
+
+
+async def test_a_reply_to_someone_elses_comment_is_ignored(sessionmaker):
+    replies = []
+    c = await reviewed(sessionmaker, replies, [])
+    c["llm"] = llm = answering(("stand", "x"))
+
+    await answer_reply(c, "o/r", 7, 42, 555, "hello", "@@", 9)
+
+    assert (llm.calls, replies) == (0, [])
+
+
+async def test_one_note_gets_at_most_three_answers(sessionmaker):
+    replies = []
+    c = await reviewed(sessionmaker, replies, [])
+    c["llm"] = llm = answering(*[("stand", f"answer {i}") for i in range(4)])
+
+    for _ in range(4):
+        await answer_reply(c, "o/r", 7, 42, 100, "really?", "@@", 9)
+
+    assert llm.calls == 3 and len(replies) == 3

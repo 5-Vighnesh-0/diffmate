@@ -31,6 +31,8 @@ Checks run in this order (implemented in Phase 1):
 9. Enqueue fails (Redis down): `503`, and the delivery ID is released so GitHub's redelivery works.
 10. Otherwise one job per (repo, PR, head SHA) is queued: `202 {"status":"queued"}`. A second delivery for the same commit queues nothing.
 
+Replies (talk back): a `pull_request_review_comment` event with action `created` is checked after step 5 instead of steps 6 to 10. It is ignored (`200`) unless it is a reply (`in_reply_to_id`), from a person (not a bot), in a public repository, by the PR's author or someone whose `author_association` is `OWNER`, `MEMBER`, or `COLLABORATOR`. Otherwise one `answer_reply` job per reply comment is queued (`202`). The worker answers only replies to DiffMate's own notes, at most 3 per note, within the daily AI cap: it stands by the note with a reason, or withdraws it (strikes it through) and records the replier's Not useful vote.
+
 ## Auth
 
 | Method and path | Purpose |
