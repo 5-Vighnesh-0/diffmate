@@ -332,7 +332,8 @@ async def answer_reply(
             .where(Finding.github_comment_id == root_id, Repo.full_name == repo)
         )
     if note is None or llm is None:
-        return  # not a reply to one of DiffMate's notes
+        log.info("reply on comment %s ignored: not one of DiffMate's notes", root_id)
+        return
     answers = await ctx["redis"].incr(f"answers:{note.id}")
     await ctx["redis"].expire(f"answers:{note.id}", 30 * 24 * 3600)
     if answers > MAX_ANSWERS_PER_NOTE:

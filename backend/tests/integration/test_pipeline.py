@@ -96,6 +96,22 @@ def fake_github(reviews: list, private=False, replies=None, edits=None):
             reviews.append(json.loads(request.content))
             return httpx.Response(200, json={"id": 1})
         if path == "/repos/o/r/pulls/7/reviews/1/comments":
+            # like real GitHub: this endpoint has no "line" or "start_line", only "position"
+            comments = reviews[-1]["comments"] if reviews else []
+            return httpx.Response(
+                200,
+                json=[
+                    {
+                        "id": 100 + i,
+                        "path": c["path"],
+                        "line": None,
+                        "position": 1,
+                        "body": c["body"],
+                    }
+                    for i, c in enumerate(comments)
+                ],
+            )
+        if path == "/repos/o/r/pulls/7/comments" and method == "GET":
             comments = reviews[-1]["comments"] if reviews else []
             listed = [
                 {
@@ -103,6 +119,7 @@ def fake_github(reviews: list, private=False, replies=None, edits=None):
                     "path": c["path"],
                     "line": c["line"],
                     "start_line": c.get("start_line"),
+                    "pull_request_review_id": 1,
                     "body": c["body"],
                 }
                 for i, c in enumerate(comments)

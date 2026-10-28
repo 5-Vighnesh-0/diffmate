@@ -82,10 +82,11 @@ async def review_comment_ids(
     http: httpx.AsyncClient, token: str, repo: str, pr: int, review_id: int
 ) -> dict[tuple[str, int, str], int]:
     """GitHub's id for each inline comment of a review, by (file, line, body): replies point
-    to it. The body tells apart two notes on the same line."""
+    to it. The body tells apart two notes on the same line. Read from the PR's comment list:
+    the per-review endpoint has no line numbers, only the old diff `position`."""
     r = await http.get(
-        f"/repos/{repo}/pulls/{pr}/reviews/{review_id}/comments",
-        params={"per_page": 100},
+        f"/repos/{repo}/pulls/{pr}/comments",
+        params={"per_page": 100, "sort": "created", "direction": "desc"},
         headers={"Authorization": f"Bearer {token}"},
     )
     r.raise_for_status()
@@ -93,7 +94,7 @@ async def review_comment_ids(
     return {
         (c["path"], c.get("start_line") or c["line"], c["body"]): c["id"]
         for c in r.json()
-        if c.get("line")
+        if c.get("pull_request_review_id") == review_id and c.get("line")
     }
 
 

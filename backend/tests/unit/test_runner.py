@@ -56,3 +56,41 @@ def test_look_again_adds_the_second_pass_to_the_first_one():
     assert (merged["llm_requests"], merged["tokens_in"], merged["seconds"]) == (5, 150, 14.0)
     assert [f["line"] for f in merged["setups"]["agent"]] == [1, 5]
     assert [f["line"] for f in merged["setups"]["filtered"]] == [5]
+
+
+def test_reviewbench_scoring_counts_each_golden_finding_once():
+    from benchmark.reviewbench import score_pr
+
+    golden = [
+        {"file": "a.py", "start_line": 10, "end_line": 12, "tp_fp": "tp"},
+        {"file": "a.py", "start_line": 40, "end_line": 40, "tp_fp": "fp"},
+        {"file": "README", "start_line": 1, "end_line": 2, "tp_fp": "tp"},
+    ]
+    notes = [
+        {"file": "a.py", "line": 14},
+        {"file": "a.py", "line": 11},
+        {"file": "a.py", "line": 41},
+        {"file": "b.py", "line": 3},
+    ]
+
+    s = score_pr(notes, golden)
+
+    # recall: the first TP is covered once; README's TP is not a file DiffMate reviews
+    assert (s["golden_tp"], s["covered"], s["golden_tp_reviewable"], s["covered_reviewable"]) == (
+        2,
+        1,
+        1,
+        1,
+    )
+    # precision: line 14 claims the TP, line 11 finds it already claimed, line 41 claims the FP
+    assert (s["matched"], s["matched_tp"], s["unmatched"]) == (2, 1, 2)
+
+
+def test_reviewbench_slice_is_seeded_and_language_limited():
+    from benchmark.reviewbench import pick
+
+    manifest = [{"pr_url": f"u{i}", "language": "Python" if i % 2 else "Go"} for i in range(40)]
+
+    a, b = pick(manifest, 5), pick(manifest, 5)
+
+    assert a == b and all(m["language"] == "Python" for m in a)
