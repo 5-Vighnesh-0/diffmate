@@ -23,7 +23,8 @@ How to work:
 - confidence is your honest probability (0 to 1) that the finding is a real problem.
 - explanation: at most 3 short sentences, plain text, saying what goes wrong and when.
 - fix (optional): only when you are sure, the corrected code that replaces the reported
-  line, with the same indentation, at most 10 lines. Leave it out when unsure.
+  line, with the same indentation, at most 10 lines. Leave it out when unsure. If the fix
+  replaces more lines than the reported one, set fix_end_line to the last line it replaces.
 - Report at most 10 findings. Reporting nothing is a good answer for a clean PR.
 - Finish by calling submit_findings exactly once."""
 

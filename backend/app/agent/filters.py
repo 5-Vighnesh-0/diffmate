@@ -17,7 +17,12 @@ def filter_findings(
 
     in_diff = []
     for f in findings:
-        if f.line in commentable.get(f.file, set()):
+        lines = commentable.get(f.file, set())
+        if f.line in lines:
+            end = f.fix_end_line or f.line
+            if f.fix and not all(n in lines for n in range(f.line, end + 1)):
+                # GitHub only takes a suggestion on lines in the diff: keep the note, not the fix
+                f = f.model_copy(update={"fix": None, "fix_end_line": None})
             in_diff.append(f)
         else:  # GitHub only accepts review comments on lines in the diff
             dropped.append((f, "dropped_not_in_diff"))

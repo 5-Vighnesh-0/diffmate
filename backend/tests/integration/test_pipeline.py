@@ -98,7 +98,13 @@ def fake_github(reviews: list, private=False, replies=None, edits=None):
         if path == "/repos/o/r/pulls/7/reviews/1/comments":
             comments = reviews[-1]["comments"] if reviews else []
             listed = [
-                {"id": 100 + i, "path": c["path"], "line": c["line"], "body": c["body"]}
+                {
+                    "id": 100 + i,
+                    "path": c["path"],
+                    "line": c["line"],
+                    "start_line": c.get("start_line"),
+                    "body": c["body"],
+                }
                 for i, c in enumerate(comments)
             ]
             return httpx.Response(200, json=listed)
@@ -468,3 +474,21 @@ async def test_no_second_look_when_the_first_pass_already_posted(sessionmaker):
     await review_pr(ctx(sessionmaker, llm, []), "o/r", 7, SHA, 42)
 
     assert llm.calls == 2  # read_file + submit, nothing more
+
+
+async def test_a_two_line_fix_keeps_its_note_linked_to_the_github_comment(sessionmaker, session):
+    sure = {**finding(2, 0.97), "fix": "    return a / b\nx = 1", "fix_end_line": 3}
+    reviews = []
+
+    await review_pr(
+        ctx(sessionmaker, FakeLLM([("submit_findings", {"findings": [sure]})]), reviews),
+        "o/r",
+        7,
+        SHA,
+        42,
+    )
+
+    (c,) = reviews[0]["comments"]
+    assert (c["start_line"], c["line"]) == (2, 3)
+    stored = (await session.execute(select(Finding))).scalar_one()
+    assert (stored.line, stored.github_comment_id) == (2, 100)

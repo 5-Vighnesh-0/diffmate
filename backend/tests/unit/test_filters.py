@@ -92,3 +92,19 @@ def test_a_fix_cannot_break_out_of_its_code_block_or_run_long():
         with pytest.raises(ValidationError):
             Finding.model_validate({**f().model_dump(), "fix": bad})
     assert Finding.model_validate({**f().model_dump(), "fix": "x = 1\ny = 2"}).fix == "x = 1\ny = 2"
+
+
+def test_a_fix_names_a_sane_range_of_lines():
+    base = {**f(line=10).model_dump(), "fix": "x = 1\ny = 2"}
+    assert Finding.model_validate({**base, "fix_end_line": 11}).fix_end_line == 11
+    for bad in [9, 20]:  # before the note's line, or more than 10 lines
+        with pytest.raises(ValidationError):
+            Finding.model_validate({**base, "fix_end_line": bad})
+
+
+def test_a_fix_reaching_outside_the_diff_is_dropped_but_the_note_stays():
+    note = Finding.model_validate({**f(line=100).model_dump(), "fix": "a\nb", "fix_end_line": 101})
+
+    ((posted, status),) = filter_findings([note], DIFF)  # DIFF covers lines 1-100 only
+
+    assert status == "posted" and posted.fix is None and posted.fix_end_line is None

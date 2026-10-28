@@ -20,11 +20,25 @@ def plain(text: str) -> str:
 SUGGEST_MIN_CONFIDENCE = 0.95  # one-click fixes only on the surest notes
 
 
+def suggests(f: Finding) -> bool:
+    return bool(f.fix) and f.confidence >= SUGGEST_MIN_CONFIDENCE
+
+
+def _comment(f: Finding) -> dict:
+    """An inline comment; a suggestion covers every line its fix replaces, or GitHub would
+    replace only the first one and leave the rest of the old code in place."""
+    c = {"path": f.file, "line": f.line, "side": "RIGHT", "body": format_comment(f)}
+    end = f.fix_end_line or f.line
+    if suggests(f) and end > f.line:
+        c |= {"start_line": f.line, "start_side": "RIGHT", "line": end}
+    return c
+
+
 def format_comment(f: Finding) -> str:
     percent = round(f.confidence * 100)
     head = f"**{LABELS[f.category]}** · {f.severity} severity · {percent}% confidence"
     body = f"{head}\n\n{plain(f.explanation)}"
-    if f.fix and f.confidence >= SUGGEST_MIN_CONFIDENCE:
+    if suggests(f):
         # Inside a fence nothing renders; the schema forbids fences in the fix itself.
         body += f"\n\nSuggested fix (check it before committing):\n```suggestion\n{f.fix}\n```"
     return body
@@ -54,10 +68,7 @@ async def post_review(
 
     noun = "finding" if len(findings) == 1 else "findings"
     body = f"DiffMate reviewed `{sha[:7]}`: {len(findings)} {noun}.\n\n{marker(sha)}"
-    comments = [
-        {"path": f.file, "line": f.line, "side": "RIGHT", "body": format_comment(f)}
-        for f in findings
-    ]
+    comments = [_comment(f) for f in findings]
     r = await http.post(
         f"/repos/{repo}/pulls/{pr}/reviews",
         headers=auth,
@@ -78,7 +89,12 @@ async def review_comment_ids(
         headers={"Authorization": f"Bearer {token}"},
     )
     r.raise_for_status()
-    return {(c["path"], c["line"], c["body"]): c["id"] for c in r.json() if c.get("line")}
+    # A multi-line comment's own line is its last one; the note's line is where it starts.
+    return {
+        (c["path"], c.get("start_line") or c["line"], c["body"]): c["id"]
+        for c in r.json()
+        if c.get("line")
+    }
 
 
 async def reply_to_comment(

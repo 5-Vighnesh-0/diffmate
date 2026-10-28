@@ -33,6 +33,11 @@ SUBMIT_TOOL = {
                             "description": "Optional: the corrected code that replaces the "
                             "reported line, same indentation, at most 10 lines.",
                         },
+                        "fix_end_line": {
+                            "type": "integer",
+                            "description": "Optional: the last line your fix replaces, when it "
+                            "replaces more than the reported line.",
+                        },
                     },
                     "required": [
                         "file",

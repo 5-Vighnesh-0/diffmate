@@ -123,3 +123,22 @@ async def test_a_reply_and_a_withdrawal_are_plain_text():
     assert "https://" not in b1["body"] and "@admin" not in b1["body"]
     assert (m2, p2) == ("PATCH", "/repos/o/r/pulls/comments/100")
     assert b2["body"].startswith("**Withdrawn:**") and "~~Divides by zero.~~" in b2["body"]
+
+
+async def test_a_multi_line_fix_is_posted_on_every_line_it_replaces():
+    http, posted = github([])
+    sure = F.model_copy(update={"confidence": 0.97, "fix": "a = 1\nb = 2", "fix_end_line": 13})
+
+    await post_review(http, "t", "o/r", 7, SHA, [sure])
+
+    (c,) = posted[0]["comments"]
+    assert (c["start_line"], c["line"], c["start_side"], c["side"]) == (12, 13, "RIGHT", "RIGHT")
+
+
+async def test_a_note_without_a_suggestion_stays_on_its_own_line():
+    http, posted = github([])
+
+    await post_review(http, "t", "o/r", 7, SHA, [F.model_copy(update={"fix_end_line": 13})])
+
+    (c,) = posted[0]["comments"]
+    assert c["line"] == 12 and "start_line" not in c

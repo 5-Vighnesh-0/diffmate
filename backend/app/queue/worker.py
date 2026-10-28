@@ -163,7 +163,7 @@ async def save_result(
                         )
                         if posted
                         else None,
-                        **f.model_dump(exclude={"fix"}),
+                        **f.model_dump(exclude={"fix", "fix_end_line"}),
                     )
                 )
             for n, t in enumerate(result.trace, 1):

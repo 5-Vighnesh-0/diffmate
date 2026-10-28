@@ -1,6 +1,6 @@
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 Category = Literal["bug", "security", "missing_test"]
 Severity = Literal["low", "medium", "high"]
@@ -19,6 +19,8 @@ class Finding(BaseModel):
     explanation: str = Field(min_length=1, max_length=2000)
     # Replacement for the reported line, offered as a GitHub suggestion the author can commit.
     fix: str | None = Field(default=None, min_length=1, max_length=1000)
+    # Last line the fix replaces (lines `line`..`fix_end_line`); None = only `line`.
+    fix_end_line: int | None = Field(default=None, ge=1)
 
     @field_validator("fix")
     @classmethod
@@ -27,3 +29,10 @@ class Finding(BaseModel):
         if v is not None and ("```" in v or "~~~" in v or v.count("\n") >= 10):
             raise ValueError("fix must be at most 10 lines and contain no code fences")
         return v
+
+    @model_validator(mode="after")
+    def _fix_range_is_small(self) -> "Finding":
+        end = self.fix_end_line
+        if end is not None and not self.line <= end < self.line + 10:
+            raise ValueError("fix_end_line must be within 10 lines from line")
+        return self
