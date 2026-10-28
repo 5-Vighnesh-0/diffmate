@@ -116,6 +116,8 @@ async def review(m: dict, llm, cap: DailyCap) -> dict:
             "name": key(m),
             "files": len(files),
             "posted": [f.model_dump() for f, s in statuses if s == "posted"],
+            # everything the AI found, with what the filter did to it: model or filter?
+            "agent": [f.model_dump() | {"status": s} for f, s in statuses],
             "stop_reason": result.stop_reason,
             "llm_requests": result.llm_requests,
             "tokens_in": b.tokens_in,
@@ -158,7 +160,7 @@ def score_pr(posted: list[dict], golden: list[dict]) -> dict:
     }
 
 
-def summarize(rows: list[dict], data: Path) -> dict:
+def summarize(rows: list[dict], data: Path, setup: str = "posted") -> dict:
     t = dict.fromkeys(
         [
             "golden_tp",
@@ -174,7 +176,7 @@ def summarize(rows: list[dict], data: Path) -> dict:
     )
     for r in rows:
         golden = json.loads((data / "golden" / r["golden_file"]).read_text())["findings"]
-        for k, v in score_pr(r["posted"], golden).items():
+        for k, v in score_pr(r.get(setup, []), golden).items():
             t[k] += v
     pct = lambda a, b: round(a / b, 3) if b else None  # noqa: E731
     return t | {
@@ -186,7 +188,7 @@ def summarize(rows: list[dict], data: Path) -> dict:
     }
 
 
-async def run(data: Path, count: int, model: str) -> int:
+async def run(data: Path, count: int, model: str, tag: str = "") -> int:
     settings = get_settings()
     key_ = settings.gemini_api_key.get_secret_value()
     if not key_:
@@ -202,7 +204,7 @@ async def run(data: Path, count: int, model: str) -> int:
         settings.llm_requests_per_minute or 12,
         model=model,
     )
-    out = HERE / "results" / f"reviewbench-{model}.jsonl"
+    out = HERE / "results" / f"reviewbench-{model}{tag}.jsonl"
     done = (
         {json.loads(line)["name"] for line in out.read_text().splitlines()}
         if out.exists()
@@ -236,8 +238,19 @@ async def run(data: Path, count: int, model: str) -> int:
         )
     await redis.aclose()
     rows = [json.loads(line) for line in out.read_text().splitlines()]
-    print(json.dumps(summarize(rows, data), indent=2))
+    report(rows, data)
     return 0
+
+
+def report(rows: list[dict], data: Path) -> None:
+    print(json.dumps({"posted": summarize(rows, data)}, indent=2))
+    if all("agent" in r for r in rows):
+        print(json.dumps({"agent, before filtering": summarize(rows, data, "agent")}, indent=2))
+        dropped: dict[str, int] = {}
+        for r in rows:
+            for f in r["agent"]:
+                dropped[f["status"]] = dropped.get(f["status"], 0) + 1
+        print(json.dumps({"what the filter did": dropped}, indent=2))
 
 
 def main() -> int:
@@ -248,13 +261,14 @@ def main() -> int:
     )
     p.add_argument("--count", type=int, default=30)
     p.add_argument("--model", default="gemini-3.5-flash-lite")
+    p.add_argument("--tag", default="", help="suffix for the results file, e.g. -raw")
     a = p.parse_args()
     if a.command == "score":
-        out = HERE / "results" / f"reviewbench-{a.model}.jsonl"
+        out = HERE / "results" / f"reviewbench-{a.model}{a.tag}.jsonl"
         rows = [json.loads(line) for line in out.read_text().splitlines()]
-        print(json.dumps(summarize(rows, a.data), indent=2))
+        report(rows, a.data)
         return 0
-    return asyncio.run(run(a.data, a.count, a.model))
+    return asyncio.run(run(a.data, a.count, a.model, a.tag))
 
 
 if __name__ == "__main__":
