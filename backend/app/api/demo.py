@@ -7,6 +7,7 @@ write). DiffMate's own GitHub App stays read-only."""
 
 import base64
 import json
+import logging
 import time
 from datetime import UTC, datetime, timedelta
 from functools import cache
@@ -22,6 +23,7 @@ from app.core.config import Settings, get_settings
 from app.core.ratelimit import rate_limit
 
 router = APIRouter()
+log = logging.getLogger(__name__)
 
 TITLES = {
     "loop": "Use an index in average",
@@ -115,6 +117,16 @@ async def plant(
         )
         pr.raise_for_status()
     except httpx.HTTPError as e:
+        # Which call GitHub refused and why (path and status only; the token is never logged).
+        req = getattr(e, "request", None)
+        res = getattr(e, "response", None)
+        log.warning(
+            "demo: GitHub refused %s %s: %s %s",
+            req.method if req else "?",
+            req.url.path if req else "?",
+            res.status_code if res is not None else type(e).__name__,
+            res.text[:200] if res is not None else "",
+        )
         if made_branch:  # don't leave a half-made demo branch behind
             await http.delete(f"{base}/git/refs/heads/{branch}", headers=auth)
         raise HTTPException(502, "GitHub could not open the demo pull request") from e
