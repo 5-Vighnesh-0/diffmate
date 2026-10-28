@@ -37,6 +37,16 @@ a {
   color: inherit;
 }
 
+p,
+li {
+  text-wrap: pretty;
+}
+
+::selection {
+  background: var(--signal-red);
+  color: #fff;
+}
+
 :focus-visible {
   outline: 2px solid var(--signal-red);
   outline-offset: 3px;
@@ -45,6 +55,7 @@ a {
 h1,
 h2,
 h3 {
+  text-wrap: balance;
   font-family: var(--display);
   font-weight: 400;
   text-transform: uppercase;
@@ -199,7 +210,7 @@ th {
 }
 
 .signin h1 {
-  font-size: clamp(3rem, 6.5vw, 5.5rem);
+  font-size: clamp(2.5rem, 5vw, 3.5rem);
   margin-bottom: 1.25rem;
 }
 
@@ -272,7 +283,7 @@ th {
 }
 
 .intro {
-  max-width: 44rem;
+  max-width: 38rem;
   margin: 2rem 0 1rem;
 }
 
@@ -464,49 +475,6 @@ th {
   max-width: 34rem;
 }
 
-.pr-head .pr-title {
-  margin: 0.5rem 0;
-  font: 400 clamp(4rem, 13vw, 12rem) / 0.88 var(--display);
-  text-transform: uppercase;
-  letter-spacing: -0.01em;
-}
-
-.review-track {
-  height: 400vh;
-}
-
-.review.pin {
-  position: sticky;
-  top: 3rem;
-  height: calc(100vh - 3rem);
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  padding-top: 1.5rem;
-  border-bottom: 0;
-}
-
-.statusline {
-  margin: 0;
-}
-
-.surface {
-  display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
-  border: 2px solid var(--ink);
-  background: #fff;
-  min-height: 0;
-}
-
-.surface > .side {
-  border-left: 2px solid var(--ink);
-  padding: 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  min-width: 0;
-}
-
 .code {
   list-style: none;
   margin: 0;
@@ -534,49 +502,20 @@ th {
   position: relative; /* above the red bar */
 }
 
-/* The peak: a hard full-width red bar across the buggy line. */
-.slam {
-  position: absolute;
-  inset: 0;
-  background: var(--signal-red);
-  transform-origin: left center;
-  will-change: transform;
-}
-
-.bug-line.hit .t,
-.bug-line.hit .n {
-  color: #fff; /* 4.7:1 on signal red */
-}
-
 .code.small {
   font-size: 14px;
 }
 
 .code li.changed {
   background: rgb(229 18 11 / 12%);
-  box-shadow: inset 4px 0 var(--signal-red);
-}
-
-.trace {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  font-size: 12px;
-}
-
-.trace li {
-  border-left: 2px solid var(--ink);
-  padding: 0.25rem 0.5rem;
-  margin-bottom: 0.4rem;
-  overflow-wrap: anywhere;
+  padding-block: 0.15rem;
 }
 
 .review-comment {
   border: 2px solid var(--ink);
-  box-shadow: inset 6px 0 var(--signal-red);
   background: #fff;
   color: var(--ink);
-  padding: 0.75rem 1rem 0.75rem 1.25rem;
+  padding: 0.75rem 1rem;
 }
 
 .review-comment p {
@@ -607,46 +546,8 @@ th {
 }
 
 .numbers .note {
-  max-width: 62ch;
+  max-width: 30rem;
   color: #d9d5cc; /* paper, slightly dimmed: 13:1 on ink */
-}
-
-.plant h2 {
-  font-size: clamp(2.5rem, 7vw, 6rem);
-  margin-bottom: 1.5rem;
-}
-
-.plant fieldset {
-  border: 0;
-  padding: 0;
-  margin: 0 0 1rem;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.plant legend {
-  margin-bottom: 0.5rem;
-}
-
-.plant label {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-  border: 2px solid var(--ink);
-  padding: 0.6rem 0.9rem;
-  cursor: pointer;
-  font-weight: 600;
-}
-
-.plant label:has(input:checked) {
-  background: var(--ink);
-  color: var(--paper);
-}
-
-.plant label:has(input:focus-visible) {
-  outline: 2px solid var(--signal-red);
-  outline-offset: 3px;
 }
 
 .note {
@@ -660,21 +561,612 @@ th {
 
 .close p {
   font-size: 15px;
-  max-width: 44rem;
+  max-width: 36rem;
 }
 
 @media (max-width: 640px) {
-  .surface,
   .numbers dl {
     grid-template-columns: 1fr;
   }
 
-  .surface > .side {
-    border-left: 0;
-    border-top: 2px solid var(--ink);
-  }
-
   .chrome {
     gap: 0.75rem;
+  }
+}
+
+/* How it works: the scroll flow (src/components/ReviewFlow.tsx). Your scroll moves one recorded
+   pull request through DiffMate; one authored moment, the catch, wipes red with clip-path. */
+.flow {
+  --dim: #8f8b82; /* upcoming text on ink: 5.6:1 */
+  --soft: #c9c5bb;
+  --rule: #2c2b28;
+  border-bottom: 2px solid var(--ink);
+}
+
+.flow-intro {
+  padding: 2rem 1rem 1.25rem;
+}
+
+.flow-intro h2 {
+  font-size: clamp(2.75rem, 6vw, 5.25rem);
+  line-height: 0.95;
+  margin-bottom: 1rem;
+}
+
+.flow-intro .lead {
+  max-width: 34rem;
+  color: var(--muted);
+  margin: 0 0 1.25rem;
+}
+
+.picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.picker button {
+  font: 600 14px var(--body);
+  border: 2px solid var(--ink);
+  background: #fff;
+  color: var(--ink);
+  min-height: 44px;
+  padding: 0 0.9rem;
+  cursor: pointer;
+}
+
+.picker button[aria-pressed="true"] {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.flow .stage {
+  padding: 0.75rem 1rem 1rem;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 0.75rem;
+}
+
+.flow-track .stage {
+  position: sticky;
+  top: 2.75rem; /* below the page bar */
+  height: calc(100vh - 2.75rem);
+  overflow: hidden;
+}
+
+.flow .now {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  gap: 0.9rem;
+  min-height: 2.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 3px solid var(--ink);
+}
+
+.flow .now .chap {
+  font: 400 1.6rem/1 var(--display);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.flow .now p {
+  max-width: 70ch;
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+.flow .now .ff {
+  margin-left: auto;
+  font: 600 13px var(--body);
+  background: var(--add-green);
+  padding: 0.25rem 0.55rem;
+  white-space: nowrap;
+}
+
+.flow .band {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -3px;
+  height: 6px;
+  background: var(--signal-red);
+}
+
+.flow .cols {
+  display: grid;
+  grid-template-columns: 15.5rem minmax(0, 1.05fr) 5rem minmax(0, 1fr);
+  column-gap: 1rem;
+  align-items: start;
+  min-height: 0;
+}
+
+.flow h3 {
+  font: 700 15px/1.3 var(--body);
+  text-transform: none;
+  margin: 0 0 0.5rem;
+}
+
+.flow h3 small {
+  font-weight: 400;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+/* timestamp rail */
+.rail ol {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 0.9rem;
+  border-left: 3px solid var(--ink);
+}
+
+.rail li {
+  position: relative;
+  padding: 0.2rem 0 0.35rem 0.4rem;
+  color: var(--muted);
+}
+
+.rail li::before {
+  content: "";
+  position: absolute;
+  left: -1.45rem;
+  top: 0.55rem;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  border: 2px solid var(--ink);
+  background: var(--paper);
+}
+
+.rail li.on {
+  color: var(--ink);
+}
+
+.rail li.on::before {
+  background: var(--ink);
+}
+
+.rail li.cur::before {
+  background: var(--signal-red);
+  border-color: var(--signal-red);
+}
+
+.rail li.key.on .x {
+  font-weight: 700;
+}
+
+.rail .t {
+  display: block;
+  font: 400 12px var(--mono);
+}
+
+.rail .x {
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+/* GitHub side */
+.gh {
+  background: #fff;
+  border: 2px solid var(--ink);
+}
+
+.gh-top {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.4rem 0.6rem;
+  padding: 0.75rem 0.9rem;
+  border-bottom: 2px solid var(--ink);
+}
+
+.gh-title {
+  font-weight: 700;
+  font-size: 17px;
+}
+
+.gh-title span,
+.gh-top .status {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.gh-top .status {
+  grid-column: 1 / -1;
+  font-size: 13px;
+}
+
+.createbtn {
+  grid-row: 1 / 3;
+  grid-column: 2;
+  align-self: start;
+  font: 700 13px var(--body);
+  background: #2f7a3a;
+  color: #fff;
+  padding: 0.5rem 0.8rem;
+  transition: opacity 0.25s;
+}
+
+.pill {
+  justify-self: start;
+  font: 600 12px var(--body);
+  padding: 0.15rem 0.55rem;
+  border: 2px solid var(--ink);
+}
+
+.pill.open {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.flow-code {
+  position: relative;
+  list-style: none;
+  margin: 0;
+  padding: 0.5rem 0;
+  font: 400 13px/1.6 var(--mono);
+  overflow: hidden;
+}
+
+.flow-code li {
+  position: relative;
+  display: grid;
+  grid-template-columns: 2rem 1rem 1fr;
+  padding-right: 0.6rem;
+  white-space: pre;
+}
+
+.flow-code .n {
+  position: relative;
+  color: var(--muted);
+  text-align: right;
+  padding-right: 0.4rem;
+}
+
+.flow-code .t {
+  position: relative; /* above the red wipe */
+}
+
+.flow-code .del {
+  background: rgb(229 18 11 / 9%);
+}
+
+.flow-code .del .t {
+  text-decoration: line-through;
+  color: var(--muted);
+}
+
+.flow-code .add {
+  background: rgb(125 219 140 / 26%);
+}
+
+.flow-code .hl {
+  position: absolute;
+  inset: 0;
+  outline: 2px dashed var(--ink);
+  outline-offset: -2px;
+}
+
+.flow-code .reader {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0.5rem;
+  height: 1lh;
+  background: rgb(229 18 11 / 14%);
+  border-bottom: 2px solid var(--signal-red);
+}
+
+.flow-code .slam {
+  position: absolute;
+  inset: 0;
+  background: var(--signal-red);
+  mix-blend-mode: multiply;
+  opacity: 0.85;
+}
+
+.flow-comment {
+  margin: 0.5rem 0.75rem 0.75rem;
+  border: 2px solid var(--ink);
+  background: var(--paper);
+}
+
+.flow-comment .who {
+  font: 600 13px var(--body);
+  background: var(--ink);
+  color: var(--paper);
+  padding: 0.4rem 0.6rem;
+}
+
+.flow-comment .who em {
+  font-style: normal;
+  color: #ff8d87; /* 7:1 on ink */
+}
+
+.flow-comment p {
+  margin: 0;
+  padding: 0.5rem 0.6rem 0.4rem;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.flow-comment .votes {
+  display: flex;
+  gap: 0.4rem;
+  padding: 0 0.6rem 0.6rem;
+}
+
+.flow-comment .votes span {
+  font: 600 13px var(--body);
+  border: 2px solid var(--ink);
+  background: #fff;
+  padding: 0.3rem 0.7rem;
+}
+
+/* the wire between the two sides */
+.wire {
+  position: relative;
+  align-self: stretch;
+}
+
+.wire::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 1.75rem;
+  bottom: 1rem;
+  width: 2px;
+  background: var(--ink);
+}
+
+.wire-label {
+  position: absolute;
+  left: 50%;
+  top: 45%;
+  transform: translate(-50%, -50%) rotate(-90deg);
+  font: 600 12px var(--body);
+  color: var(--muted);
+  white-space: nowrap;
+  background: var(--paper);
+  padding: 0 0.5rem;
+}
+
+.wire .msg {
+  position: absolute;
+  top: 30%;
+  left: 50%;
+  width: 10rem;
+  margin-left: -5rem;
+  padding: 0.45rem 0.55rem;
+  font: 400 12px/1.4 var(--mono);
+  border: 2px solid var(--ink);
+  z-index: 2;
+}
+
+.wire .msg.out {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.wire .msg.back {
+  background: var(--signal-red);
+  border-color: var(--signal-red);
+  color: #fff;
+}
+
+/* DiffMate side */
+.dm {
+  background: var(--ink);
+  color: var(--paper);
+  padding: 0.25rem 1rem 0.75rem;
+}
+
+.dm .row {
+  padding: 0.55rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.dm .row-h {
+  display: grid;
+  grid-template-columns: 1.4rem 1fr auto;
+  gap: 0.5rem;
+  align-items: start;
+}
+
+.dm .row b {
+  font-size: 15px;
+  color: var(--dim);
+}
+
+.dm .row.on b {
+  color: var(--paper);
+}
+
+.dm .d {
+  display: block;
+  margin-top: 0.1rem;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--dim);
+}
+
+.dm .row.on .d {
+  color: var(--soft);
+}
+
+.dm .ts {
+  font: 400 12px var(--mono);
+  color: var(--soft);
+}
+
+.ic {
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+}
+
+.ic .todo {
+  stroke: var(--dim);
+}
+
+.ic .done {
+  opacity: 0;
+  fill: var(--add-green);
+}
+
+.row.on .ic .done {
+  opacity: 1;
+}
+
+.row.on .ic .todo {
+  opacity: 0;
+}
+
+.row.cur .ic .done circle {
+  fill: #ff8d87;
+}
+
+.calls {
+  list-style: none;
+  margin: 0.4rem 0 0;
+  padding: 0;
+}
+
+.calls li {
+  padding: 0.15rem 0;
+}
+
+.calls code {
+  font-size: 12.5px;
+  color: var(--dim);
+  overflow-wrap: anywhere;
+}
+
+.calls li.on code {
+  color: var(--paper);
+}
+
+.calls li.cur code {
+  color: #ff8d87;
+}
+
+.calls .why {
+  display: block;
+  font-size: 13px;
+  color: var(--dim);
+}
+
+.calls li.on .why {
+  color: var(--soft);
+}
+
+.note-card {
+  margin-top: 0.5rem;
+  border: 2px solid var(--paper);
+  padding: 0.5rem 0.6rem;
+}
+
+.note-card .h {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.note-card .bar {
+  height: 8px;
+  border: 1px solid var(--paper);
+  margin: 0.4rem 0;
+}
+
+.note-card .bar i {
+  display: block;
+  height: 100%;
+  background: var(--signal-red);
+  transform-origin: left;
+}
+
+.note-card ul {
+  margin: 0;
+  padding: 0 0 0 1rem;
+  font-size: 13px;
+}
+
+.dm .big {
+  display: flex;
+  gap: 1.5rem;
+  align-items: end;
+  margin-top: 0.6rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--rule);
+}
+
+.dm .big .n {
+  font: 400 2.6rem/1 var(--display);
+}
+
+.dm .big .n.locked {
+  color: #ff8d87;
+}
+
+.dm .big .l {
+  font-size: 12px;
+  color: var(--soft);
+}
+
+.flow-honest {
+  max-width: 30rem;
+  margin: 0;
+  padding: 1rem 1rem 2rem;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+@media (max-width: 1100px) {
+  .flow .cols {
+    grid-template-columns: minmax(0, 1.05fr) 4.5rem minmax(0, 1fr);
+  }
+
+  .rail {
+    display: none;
+  }
+}
+
+/* phones: one side at a time, cutting to whichever side is acting */
+@media (max-width: 760px) {
+  .flow .now {
+    flex-wrap: wrap;
+    gap: 0.25rem 0.6rem;
+  }
+
+  .flow .now .chap {
+    font-size: 1.25rem;
+  }
+
+  .flow .now p {
+    width: 100%;
+    font-size: 14px;
+  }
+
+  .flow .now .ff {
+    margin-left: 0;
+    order: 3;
+  }
+
+  .flow .cols {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 1rem;
+  }
+
+  .wire {
+    display: none;
+  }
+
+  .cols[data-side="github"] .dmlane,
+  .cols[data-side="diffmate"] .ghlane {
+    display: none;
+  }
+
+  .flow-code {
+    font-size: 11.5px;
   }
 }

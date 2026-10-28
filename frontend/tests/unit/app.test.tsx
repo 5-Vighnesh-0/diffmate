@@ -114,25 +114,26 @@ describe("landing", () => {
 
     render(<Landing />);
 
-    expect(screen.getByTestId("review-still")).toBeTruthy();
-    expect(screen.queryByTestId("review-pinned")).toBeNull();
-    expect(screen.getByText(demo.peak.comments[0].explanation)).toBeTruthy();
-    const bug = document.querySelector(".bug-line");
-    expect(bug?.classList.contains("hit")).toBe(true);
+    expect(screen.getByTestId("flow-still")).toBeTruthy();
+    expect(screen.queryByTestId("flow-pinned")).toBeNull();
+    expect(screen.getByText(demo.breaks.loop.comments[0].explanation)).toBeTruthy();
+    expect(screen.getByText("Comment appears on line 8")).toBeTruthy();
+    expect(document.querySelector(".flow-code .slam")).toBeTruthy();
   });
 
-  it("pins the review so scroll can write it when motion is allowed", () => {
+  it("pins the flow so the visitor's scroll moves the pull request when motion is allowed", () => {
     render(<Landing />);
 
-    expect(screen.getByTestId("review-pinned")).toBeTruthy();
+    expect(screen.getByTestId("flow-pinned")).toBeTruthy();
   });
 
-  it("shows what DiffMate actually said about the bug the visitor plants", () => {
+  it("follows the recorded pull request the visitor picks", () => {
+    stubBrowser({ reduceMotion: true });
     render(<Landing />);
 
-    fireEvent.click(screen.getByRole("radio", { name: "Run tar through the shell" }));
+    fireEvent.click(screen.getByRole("button", { name: "tar through a shell" }));
 
     expect(screen.getByText(demo.breaks.shell.comments[0].explanation)).toBeTruthy();
-    expect(screen.getByText(/Not live\./)).toBeTruthy();
+    expect(screen.getByRole("button", { name: "tar through a shell" }).getAttribute("aria-pressed")).toBe("true");
   });
 });

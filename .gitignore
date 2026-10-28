@@ -21,3 +21,4 @@ dist/
 .claude/skills/
 skills-lock.json
 docs/superpowers/
+.claude/launch.json

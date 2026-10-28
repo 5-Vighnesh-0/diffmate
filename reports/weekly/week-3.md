@@ -31,5 +31,16 @@ vitest → 6 passed (frontend unchanged)
 - Removed the `Co-Authored-By: Claude` line from all 37 earlier commit messages (`git filter-branch --msg-filter`); file contents unchanged, every commit ID changed. Commit IDs quoted in `reports/` updated to the new ones. Old history kept locally as branch `backup-before-rewrite`.
 - After the push: live `/health` ok and limited (30×200, then 429). CI tests green (201 backend, 6 frontend), but pip-audit failed on a new filelock advisory (CVE-2026-112907/112913/112940); bumped filelock 4.0.12 → 4.2.4 in `backend/uv.lock`; local audit clean, 201 passed.
 
+**Landing page: scroll flow (later the same day)**
+- Prototyped "how DiffMate works" in six rounds with Vighnesh (two-sided story, video player, then the scroll flow he picked); critiques from design-critique, scroll-craft and Impeccable (installed by Vighnesh; its detector run with his OK).
+- Built it: `frontend/src/lib/flow.ts` (timeline: real total time, AI waiting squeezed, a hold at the catch), `frontend/src/components/ReviewFlow.tsx`; replaces the pinned review and "Break one line" in `Landing.tsx`.
+- Slop detector on the built page (desktop and phone): only the cream background left, kept on purpose (decided by: Vighnesh, keep paper and Inter).
+- Honesty: per-step AI times are spread evenly inside the recorded total; the page says so.
+- Agent skills and design notes stay out of git (`.agents/`, `.claude/skills/`, `docs/superpowers/`); no new Markdown files pushed (decided by: Vighnesh).
+
+```
+vitest → 11 passed · pnpm build → ok · impeccable detect (1366x900, 390x844) → cream-palette only
+```
+
 **Next**
-- Push after approval; then check live `/health` ok and that a private-repo PR gets no review.
+- Push after approval. Then, in order: learn from votes, one-click fixes, talk back, better catch rate (benchmark), plant a bug for real.

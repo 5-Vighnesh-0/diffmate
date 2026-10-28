@@ -44,7 +44,7 @@ flowchart LR
 - **The reviewer:** an agent loop on the Gemini Interactions API with function calling, stateless requests, and a forced final submit.
 - **Security:** HMAC webhook checks with replay protection, GitHub App tokens scoped to one repository, read-only tools confined to the checkout, untrusted PR text wrapped and defused against prompt injection (8 of 8 planted attacks resisted), GitHub login with PKCE and CSRF tokens, per-user authorization, rate limits, strict CSP. Every control names its test in [docs/threat-model.md](docs/threat-model.md).
 - **The benchmark:** 60 offline cases (35 planted bugs, 15 real bug fixes undone, 10 bug-free changes), a resumable runner, and a scorer that compares three setups. `make bench`.
-- **The frontend:** a scroll-driven landing page where your scroll writes a pull request and DiffMate's real recorded review lands on the bug, and a dashboard written for people new to code review.
+- **The frontend:** a scroll-driven landing page where your scroll moves a real recorded pull request through DiffMate, event by event with timestamps, until the comment lands on the bug; and a dashboard written for people new to code review.
 - **Tests:** 197 backend tests (unit, security, integration on real Postgres and Redis) and frontend tests, run in CI with pip-audit, pnpm audit, and gitleaks on the full history.
 
 ## Benchmark
