@@ -24,6 +24,8 @@ class FakeSandbox:
     def handler(self, request: httpx.Request) -> httpx.Response:
         body = json.loads(request.content) if request.content else None
         path, method = request.url.path, request.method
+        assert request.url.host == "api.github.com"
+        assert request.headers["x-github-api-version"] == "2022-11-28"
         self.calls.append((method, path, body))
         assert request.headers["authorization"] == "Bearer sandbox-token"
         base = f"/repos/{SANDBOX}"
@@ -70,7 +72,8 @@ def sandbox(app):
     app.dependency_overrides[get_settings] = lambda: settings
     app.dependency_overrides[get_redis] = lambda: redis
     app.dependency_overrides[get_http] = lambda: httpx.AsyncClient(
-        transport=httpx.MockTransport(lambda r: fake.handler(r)), base_url="https://api.github.com"
+        # like the real app.state.http: no base URL, so the demo must send full GitHub URLs
+        transport=httpx.MockTransport(lambda r: fake.handler(r))
     )
     return fake
 

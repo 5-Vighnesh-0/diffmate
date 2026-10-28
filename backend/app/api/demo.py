@@ -49,7 +49,12 @@ def _sandbox(settings: Settings) -> tuple[str, dict]:
     token = settings.demo_token.get_secret_value()
     if not settings.demo_repo or not token:
         raise HTTPException(404, "The live demo is not set up")
-    return f"/repos/{settings.demo_repo}", {"Authorization": f"Bearer {token}"}
+    # Full URLs: the API's shared client (app.state.http) has no base URL.
+    return f"https://api.github.com/repos/{settings.demo_repo}", {
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+    }
 
 
 async def _close_stale(http, base: str, auth: dict) -> None:
