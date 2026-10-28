@@ -8,7 +8,7 @@ from pathlib import Path
 import httpx
 from arq import Retry, func
 from arq.connections import RedisSettings
-from sqlalchemy import delete, update
+from sqlalchemy import delete, select, update
 from sqlalchemy import func as sql
 from sqlalchemy.dialects.postgresql import insert
 
@@ -23,6 +23,7 @@ from app.core.config import get_settings
 from app.core.logging import setup_logging
 from app.db.models import Finding, Installation, PullRequest, Repo, Run, TraceStep
 from app.db.session import make_engine, make_sessionmaker
+from app.db.votes import stricter_categories
 from app.github.app_auth import get_installation_token, make_app_jwt
 from app.github.client import github_http
 from app.github.comments import post_review
@@ -171,11 +172,20 @@ async def _review(ctx, token: str, run_id: int, repo: str, pr: int, sha: str, in
             ),
         )
 
+    async with ctx["db"]() as s:
+        repo_id = await s.scalar(
+            select(PullRequest.repo_id)
+            .join(Run, Run.pull_request_id == PullRequest.id)
+            .where(Run.id == run_id)
+        )
+        stricter = {v.category for v in (await stricter_categories(s, [repo_id])).get(repo_id, [])}
     statuses = filter_findings(
         result.findings,
         {f.path: f.lines for f in files},
         settings.confidence_threshold,
         settings.comment_cap,
+        stricter,
+        settings.strict_confidence_threshold,
     )
     if result.stop_reason in ("daily_cap", "rate_limited"):
         status = "paused_daily_cap"  # nothing is posted; a later delivery can resume it

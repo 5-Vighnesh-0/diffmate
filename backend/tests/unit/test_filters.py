@@ -66,3 +66,22 @@ def test_keeps_five_ordered_by_severity_then_confidence():
     posted = [r[0].line for r in results if r[1] == "posted"]
     assert posted == [80, 60, 70, 10, 20]
     assert sum(1 for r in results if r[1] == "dropped_over_cap") == 2
+
+
+def test_a_stricter_category_needs_the_higher_bar():
+    results = filter_findings(
+        [
+            f(line=10, confidence=0.8),
+            f(line=30, confidence=0.95),
+            f(line=50, confidence=0.8, category="security"),
+        ],
+        DIFF,
+        stricter={"bug"},
+        strict_threshold=0.9,
+    )
+    assert sorted(statuses(results)) == [(10, "dropped_stricter"), (30, "posted"), (50, "posted")]
+
+
+def test_below_the_normal_bar_is_still_low_confidence_in_a_stricter_category():
+    results = filter_findings([f(confidence=0.5)], DIFF, stricter={"bug"}, strict_threshold=0.9)
+    assert statuses(results) == [(10, "dropped_low_confidence")]

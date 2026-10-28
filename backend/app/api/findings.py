@@ -8,6 +8,7 @@ from sqlalchemy.dialects.postgresql import insert
 from app.api.deps import get_db, get_session, require_csrf
 from app.core.sessions import Session
 from app.db.models import Feedback, Finding, Installation, PullRequest, Repo, Run
+from app.db.votes import stricter_categories
 
 router = APIRouter()
 
@@ -63,4 +64,26 @@ async def feedback_summary(session: Session = Depends(get_session), db=Depends(g
         .group_by(Feedback.verdict)
     )
     counts = dict(rows.all())
-    return {"useful": counts.get("accept", 0), "not_useful": counts.get("reject", 0)}
+    repos = dict(
+        (
+            await db.execute(
+                select(Repo.id, Repo.full_name)
+                .join(Installation, Installation.id == Repo.installation_id)
+                .where(
+                    Installation.github_installation_id.in_(session.installation_ids),
+                    Repo.github_repo_id.in_(session.repo_ids),
+                )
+            )
+        ).all()
+    )
+    stricter = await stricter_categories(db, list(repos))
+    return {
+        "useful": counts.get("accept", 0),
+        "not_useful": counts.get("reject", 0),
+        # categories where everyone's votes made DiffMate stricter, in repos this user can see
+        "stricter": [
+            {"repo": repos[r], "category": v.category, "not_useful": v.not_useful, "total": v.total}
+            for r, votes in stricter.items()
+            for v in votes
+        ],
+    }

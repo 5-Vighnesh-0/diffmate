@@ -8,7 +8,7 @@ import httpx
 from sqlalchemy import select, text
 
 from app.agent.llm import LlmStep, ToolCall
-from app.db.models import Finding, Run, TraceStep
+from app.db.models import Feedback, Finding, Installation, PullRequest, Repo, Run, TraceStep
 from app.queue.worker import review_pr
 
 SHA = "a" * 40
@@ -102,6 +102,7 @@ def ctx(sessionmaker, llm, reviews, cap=100, private=False):
         agent_max_steps=8,
         agent_max_tokens=60_000,
         confidence_threshold=0.7,
+        strict_confidence_threshold=0.9,
         comment_cap=5,
     )
     return {
@@ -255,3 +256,43 @@ async def test_provider_rate_limit_pauses_the_run_and_posts_nothing(sessionmaker
 
     run = (await session.execute(select(Run))).scalar_one()
     assert (run.status, reviews) == ("paused_daily_cap", [])
+
+
+async def test_a_category_this_repo_voted_not_useful_needs_more_confidence(sessionmaker, session):
+    # Earlier, people on o/r marked 2 of 3 bug notes Not useful.
+    repo = Repo(
+        installation=Installation(github_installation_id=42, account_login="o"),
+        github_repo_id=555,
+        full_name="o/r",
+    )
+    old = PullRequest(repo=repo, number=1, title="old")
+    session.add(old)
+    await session.flush()
+    old_run = Run(pull_request_id=old.id, commit_sha="b" * 40, status="done")
+    session.add(old_run)
+    await session.flush()
+    for user, verdict in [(1, "reject"), (2, "reject"), (3, "accept")]:
+        note = Finding(
+            run_id=old_run.id,
+            source="agent",
+            file="calc.py",
+            line=user,
+            category="bug",
+            severity="low",
+            confidence=0.8,
+            explanation="x",
+            status="posted",
+        )
+        session.add(note)
+        await session.flush()
+        session.add(Feedback(finding_id=note.id, github_user_id=user, verdict=verdict))
+    await session.commit()
+    security = {**finding(3, 0.8), "category": "security"}
+    llm = FakeLLM([("submit_findings", {"findings": [finding(2, 0.8), security]})])
+    reviews = []
+
+    await review_pr(ctx(sessionmaker, llm, reviews), "o/r", 7, SHA, 42)
+
+    assert [(c["line"]) for c in reviews[0]["comments"]] == [3]
+    new = (await session.execute(select(Finding).where(Finding.run_id != old_run.id))).scalars()
+    assert sorted((f.line, f.status) for f in new) == [(2, "dropped_stricter"), (3, "posted")]

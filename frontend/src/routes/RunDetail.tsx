@@ -23,8 +23,10 @@ const WHERE: Record<string, string> = {
   dropped_low_confidence: "Not sent to GitHub: DiffMate was not sure enough.",
   dropped_duplicate: "Not sent to GitHub: another note already says the same thing.",
   dropped_over_cap: "Not sent to GitHub: DiffMate sends at most 5 notes per review.",
+  dropped_stricter:
+    "Not sent to GitHub: people on this repo marked most notes of this kind not useful, so DiffMate needs to be surer.",
 };
-const KIND: Record<string, string> = { bug: "Mistake", security: "Security risk", missing_test: "Missing test" };
+export const KIND: Record<string, string> = { bug: "Mistake", security: "Security risk", missing_test: "Missing test" };
 const IMPORTANCE: Record<string, string> = { high: "serious", medium: "worth fixing", low: "minor" };
 const STEP: Record<string, string> = {
   read_file: "Opened a file to read it",

@@ -4,6 +4,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: no
 
 ## [Unreleased]
 
+### Added
+
+- Learn from votes: when people on a repo mark at least 2 of 3 notes of one kind Not useful (3 votes or more), DiffMate needs 90% confidence instead of 70% before posting that kind there. It never silences a kind, and it relaxes again when later votes are useful. The dashboard lists these stricter kinds; a held-back note says why on the run page. Migration 0003 adds the `dropped_stricter` status.
+
 ### Changed
 
 - Landing page: the pinned review and "Break one line" are replaced by one scroll flow. Your scroll moves a recorded pull request through DiffMate: a timeline of every event with its time, the GitHub side, and what DiffMate does meanwhile, with the catch as the one held moment. Pick any of the three recorded reviews. Phones switch to whichever side is acting; reduced motion shows the finished review, still.

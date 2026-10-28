@@ -42,5 +42,11 @@ vitest → 6 passed (frontend unchanged)
 vitest → 11 passed · pnpm build → ok · impeccable detect (1366x900, 390x844) → cream-palette only
 ```
 
+**Learn from votes (step 1 of the roadmap)**
+- `backend/app/db/votes.py` (the rule, one query), filter step `dropped_stricter`, worker looks up the repo's stricter categories, `GET /api/feedback/summary` adds `stricter`, migration `0003_findings_stricter` (approved by Vighnesh via the spec), dashboard list and run-page label.
+```
+pytest → 210 passed · ruff → All checks passed! · vitest → 11 passed · pnpm build → ok
+```
+
 **Next**
-- Push after approval. Then, in order: learn from votes, one-click fixes, talk back, better catch rate (benchmark), plant a bug for real.
+- Push after approval. Then, in order: one-click fixes, talk back, better catch rate (benchmark), plant a bug for real.

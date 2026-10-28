@@ -30,6 +30,7 @@ class Settings(BaseSettings):
     agent_max_steps: int = 8
     agent_max_tokens: int = 60_000
     confidence_threshold: float = 0.7
+    strict_confidence_threshold: float = 0.9  # categories a repo voted mostly Not useful
     comment_cap: int = 5
 
     # Dashboard login (GitHub App user OAuth). Secret only in the API container.

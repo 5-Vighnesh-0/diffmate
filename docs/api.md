@@ -68,7 +68,7 @@ Body `{"verdict": "accept" | "reject"}` (other values: `422`). Requires the `X-C
 
 ### `GET /api/feedback/summary`
 
-The signed-in user's own votes, limited to repos they can access: `{"useful": n, "not_useful": m}`. Shown as "x% of your rated notes were useful" on the reviews list and after each vote.
+The signed-in user's own votes, limited to repos they can access: `{"useful": n, "not_useful": m, "stricter": [...]}`. Shown as "x% of your rated notes were useful" on the reviews list and after each vote. `stricter` lists, for repos the user can access, each category where everyone's votes made DiffMate stricter: `{"repo", "category", "not_useful", "total"}` (at least 3 votes, at least 2 of 3 Not useful). Notes in those categories need 90% confidence instead of 70%; ones held back get status `dropped_stricter`.
 
 ### Benchmark numbers (no endpoint)
 

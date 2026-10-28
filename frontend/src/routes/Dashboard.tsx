@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Shell } from "../components/ui/Shell";
 import bench from "../lib/benchmark.json";
 import { api, type FeedbackSummary, type Run } from "../lib/api";
+import { KIND } from "./RunDetail";
 import { Link } from "../lib/router";
 
 // Plain-language status, written for people who have never used GitHub.
@@ -100,6 +101,19 @@ function Summary({ runs, more, votes }: { runs: Run[]; more: boolean; votes: Fee
         its benchmark of 60 test changes, {Math.round((bench.holdout.setups.filtered.precision ?? 0) * 100)}% of its
         notes were right.
       </p>
+      {votes?.stricter?.length ? (
+        <div className="summary-note">
+          <p>DiffMate learned from your votes. It now needs to be surer before posting these kinds of notes:</p>
+          <ul className="stricter">
+            {votes.stricter.map((s) => (
+              <li key={s.repo + s.category}>
+                <span className="mono">{s.repo}</span>: {KIND[s.category] ?? s.category} notes ({s.not_useful} of {s.total}{" "}
+                votes said not useful)
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
     </dl>
   );
 }

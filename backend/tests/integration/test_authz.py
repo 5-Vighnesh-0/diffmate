@@ -146,13 +146,40 @@ async def test_feedback_summary_counts_only_my_votes_and_follows_changes(world):
     client, csrf, (_, my_finding), _, _ = world
     vote = f"/api/findings/{my_finding}/feedback"
 
-    assert (await client.get("/api/feedback/summary")).json() == {"useful": 0, "not_useful": 0}
+    assert (await client.get("/api/feedback/summary")).json() == {
+        "useful": 0,
+        "not_useful": 0,
+        "stricter": [],
+    }
 
     await client.post(vote, json={"verdict": "accept"}, headers={"X-CSRF-Token": csrf})
-    assert (await client.get("/api/feedback/summary")).json() == {"useful": 1, "not_useful": 0}
+    assert (await client.get("/api/feedback/summary")).json() == {
+        "useful": 1,
+        "not_useful": 0,
+        "stricter": [],
+    }
 
     await client.post(vote, json={"verdict": "reject"}, headers={"X-CSRF-Token": csrf})
-    assert (await client.get("/api/feedback/summary")).json() == {"useful": 0, "not_useful": 1}
+    assert (await client.get("/api/feedback/summary")).json() == {
+        "useful": 0,
+        "not_useful": 1,
+        "stricter": [],
+    }
 
     client.cookies.clear()
     assert (await client.get("/api/feedback/summary")).status_code == 401
+
+
+async def test_feedback_summary_lists_stricter_categories_only_for_my_repos(world, sessionmaker):
+    from app.db.models import Feedback
+
+    client, _, (_, my_finding), _, (_, hidden_finding) = world
+    async with sessionmaker() as s:
+        for finding_id in (my_finding, hidden_finding):
+            for user, verdict in [(1, "reject"), (2, "reject"), (3, "accept")]:
+                s.add(Feedback(finding_id=finding_id, github_user_id=user, verdict=verdict))
+        await s.commit()
+
+    body = (await client.get("/api/feedback/summary")).json()
+
+    assert body["stricter"] == [{"repo": "o42/r1", "category": "bug", "not_useful": 2, "total": 3}]

@@ -51,6 +51,7 @@ Status: reviewed against the code at the end of Phase 3 (2026-10-07), including 
 | 25 | Exposure through the tunnel (I) | Only the API port is tunnelled; Postgres, Redis, worker, and frontend are on 127.0.0.1 or the private network | Compose review |
 | 26 | Private code sent to the free AI tier, which may learn from it (I) | Webhook ignores any repository not marked `private: false`; the worker re-checks the live PR before any AI call and stops if the repo is private | `test_private_repository_is_ignored_and_not_queued`, `test_a_private_repository_is_never_sent_to_the_ai` |
 | 27 | Anyone keeping the free Neon database awake through `/health` (D) | `/health` checks Redis only, never Postgres; rate-limited | `test_health_checks_time_out_instead_of_hanging` (fails if Postgres is touched), `test_health_rate_limit_is_30_per_minute` |
+| 28 | Votes steering what DiffMate posts (T) | Votes only raise the bar for one category in one repo (70% → 90% confidence), never silence it; only people with access to the repo can vote; it lowers again when later votes are useful | `test_a_stricter_category_needs_the_higher_bar`, `test_votes_count_only_for_their_own_repo_and_category`, `test_feedback_summary_lists_stricter_categories_only_for_my_repos` |
 
 ## Out of scope for v1
 

@@ -124,7 +124,7 @@ create table findings (
   explanation text not null check (length(explanation) <= 2000),
   status text not null
     check (status in ('posted', 'dropped_low_confidence', 'dropped_duplicate', 'dropped_over_cap',
-                      'dropped_not_in_diff')),  -- 'dropped_not_in_diff' added by migration 0002
+                      'dropped_not_in_diff', 'dropped_stricter')),  -- added by migrations 0002 and 0003
   github_comment_id bigint
 );
 create index findings_run_id_idx on findings (run_id);

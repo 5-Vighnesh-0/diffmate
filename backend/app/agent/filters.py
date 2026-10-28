@@ -9,6 +9,8 @@ def filter_findings(
     commentable: dict[str, set[int]],
     threshold: float = 0.7,
     cap: int = 5,
+    stricter: frozenset[str] | set[str] = frozenset(),
+    strict_threshold: float = 0.9,
 ) -> list[tuple[Finding, str]]:
     """Return every finding with a status: posted first (best first), then the dropped ones."""
     dropped: list[tuple[Finding, str]] = []
@@ -22,10 +24,13 @@ def filter_findings(
 
     confident = []
     for f in in_diff:
-        if f.confidence >= threshold:
-            confident.append(f)
-        else:
+        if f.confidence < threshold:
             dropped.append((f, "dropped_low_confidence"))
+        elif f.category in stricter and f.confidence < strict_threshold:
+            # this repo's people mostly voted this category Not useful (app/db/votes.py)
+            dropped.append((f, "dropped_stricter"))
+        else:
+            confident.append(f)
 
     unique: list[Finding] = []
     for f in sorted(confident, key=lambda f: -f.confidence):

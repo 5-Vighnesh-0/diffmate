@@ -52,7 +52,8 @@ describe("dashboard", () => {
           ],
           next_cursor: null,
         }),
-      "GET /api/feedback/summary": () => json({ useful: 3, not_useful: 1 }),
+      "GET /api/feedback/summary": () =>
+        json({ useful: 3, not_useful: 1, stricter: [{ repo: "o/r", category: "missing_test", not_useful: 4, total: 5 }] }),
     });
 
     render(<Dashboard />);
@@ -64,6 +65,7 @@ describe("dashboard", () => {
     expect(screen.getByText("Pull request")).toBeTruthy();
     expect(await screen.findByText("75%")).toBeTruthy();
     expect(screen.getByText("of your 4 rated notes were useful")).toBeTruthy();
+    expect(screen.getByText(/Missing test notes \(4 of 5 votes said not useful\)/)).toBeTruthy();
   });
 
   it("shows AI text as plain text and sends votes with the CSRF token", async () => {

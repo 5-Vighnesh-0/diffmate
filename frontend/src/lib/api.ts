@@ -49,7 +49,8 @@ export type TraceStep = {
   duration_ms: number;
 };
 
-export type FeedbackSummary = { useful: number; not_useful: number };
+export type Stricter = { repo: string; category: string; not_useful: number; total: number };
+export type FeedbackSummary = { useful: number; not_useful: number; stricter?: Stricter[] };
 
 // "4 of 5 notes useful (80%)", or null before any vote.
 export function usefulLine(s: FeedbackSummary): string | null {
