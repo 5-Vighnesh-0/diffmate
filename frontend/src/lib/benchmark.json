@@ -2,25 +2,25 @@
   "dev": {
     "case_set": "2fe57354e31e",
     "cases": 48,
-    "model": "gemini-3.5-flash-lite",
+    "model": "gemini-3.5-flash-lite+look-again",
     "setups": {
       "agent": {
         "cases": 48,
-        "cost_per_pr": 0.0036734604166666664,
+        "cost_per_pr": 0.00612694375,
         "fp_per_pr": 0.0,
-        "p50": 38.6,
-        "p95": 140.75,
+        "p50": 106.82,
+        "p95": 248.77,
         "precision": 1.0,
-        "recall": 0.5454545454545454
+        "recall": 0.6818181818181818
       },
       "filtered": {
         "cases": 48,
-        "cost_per_pr": 0.0036734604166666664,
+        "cost_per_pr": 0.00612694375,
         "fp_per_pr": 0.0,
-        "p50": 38.6,
-        "p95": 140.75,
+        "p50": 106.82,
+        "p95": 248.77,
         "precision": 1.0,
-        "recall": 0.5454545454545454
+        "recall": 0.6818181818181818
       },
       "linter": {
         "cases": 48,
@@ -36,25 +36,25 @@
   "holdout": {
     "case_set": "2fe57354e31e",
     "cases": 12,
-    "model": "gemini-3.5-flash-lite",
+    "model": "gemini-3.5-flash-lite+look-again",
     "setups": {
       "agent": {
         "cases": 12,
-        "cost_per_pr": 0.002954641666666667,
+        "cost_per_pr": 0.0065622499999999995,
         "fp_per_pr": 0.0,
-        "p50": 29.85,
-        "p95": 39.95,
+        "p50": 92.11,
+        "p95": 203.74,
         "precision": 1.0,
-        "recall": 0.3
+        "recall": 0.6
       },
       "filtered": {
         "cases": 12,
-        "cost_per_pr": 0.002954641666666667,
+        "cost_per_pr": 0.0065622499999999995,
         "fp_per_pr": 0.0,
-        "p50": 29.85,
-        "p95": 39.95,
+        "p50": 92.11,
+        "p95": 203.74,
         "precision": 1.0,
-        "recall": 0.3
+        "recall": 0.6
       },
       "linter": {
         "cases": 12,

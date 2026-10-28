@@ -6,18 +6,18 @@ An AI reviewer for GitHub pull requests. It reads each change and leaves at most
 
 ## Results at a glance
 
-Measured on 60 pull requests from 10 open-source projects, each with a known answer. 12 were held back and run once, after all tuning.
+Measured on 60 pull requests from 10 open-source projects, each with a known answer. 12 were held back from all tuning. Numbers are for DiffMate as it runs now, with the second look (measured 2026-10-28).
 
 | | Held-out set (12 PRs) | Tuning set (48 PRs) |
 | --- | --- | --- |
 | Comments that were right (precision) | **100%** | 100% |
-| Bugs found (recall) | **30%** | 55% |
+| Bugs found (recall) | **60%** | 68% |
 | False alarms per pull request | **0.00** | 0.00 |
-| Cost per review | $0 (≈ $0.003 at paid prices) | $0 (≈ $0.004) |
+| Cost per review | $0 (≈ $0.007 at paid prices) | $0 (≈ $0.006) |
 
-When DiffMate comments, it has been right every time so far. It also misses most bugs, and says so. Full tables below.
+When DiffMate comments, it has been right every time so far. It still misses some bugs (40% on the held-out set), and says so. Full tables below.
 
-**Second look (2026-10-28):** when the first pass posts nothing, DiffMate now takes one focused second look (off-by-one, empty input, wrong operator, unsafe shell or SQL, unhandled errors). On the tuning set this raised recall from 55% to **68%**, still with 100% precision and no false alarms, for 49% more free AI requests. The held-out numbers above are from before this change.
+**Second look (2026-10-28):** when the first pass posts nothing, DiffMate now takes one focused second look (off-by-one, empty input, wrong operator, unsafe shell or SQL, unhandled errors). It raised recall from 30% to **60%** on the held-out set and from 55% to 68% on the tuning set, still with 100% precision and no false alarms, for about twice the AI requests on reviews that find nothing at first. Both runs reused the first-pass answers recorded on 2026-10-21 and re-checked only the cases where the first pass posted nothing.
 
 ## How it works
 
@@ -47,36 +47,36 @@ flowchart LR
 - **Security:** HMAC webhook checks with replay protection, GitHub App tokens scoped to one repository, read-only tools confined to the checkout, untrusted PR text wrapped and defused against prompt injection (8 of 8 planted attacks resisted), GitHub login with PKCE and CSRF tokens, per-user authorization, rate limits, strict CSP. Every control has a test.
 - **The benchmark:** 60 offline cases (35 planted bugs, 15 real bug fixes undone, 10 bug-free changes), a resumable runner, and a scorer that compares three setups. `make bench`.
 - **The frontend:** a scroll-driven landing page where your scroll moves a real recorded pull request through DiffMate, event by event with timestamps, until the comment lands on the bug; and a dashboard written for people new to code review.
-- **Tests:** 197 backend tests (unit, security, integration on real Postgres and Redis) and frontend tests, run in CI with pip-audit, pnpm audit, and gitleaks on the full history.
+- **Tests:** 241 backend tests (unit, security, integration on real Postgres and Redis) and frontend tests, run in CI with pip-audit, pnpm audit, and gitleaks on the full history.
 
 ## Benchmark
 
 Three setups on the same cases: linters alone, the AI alone, and the AI with DiffMate's filters.
 
-Held-out set, run once:
+Held-out set (with the second look; before it: 30% recall):
 
 <!-- bench:holdout -->
 | Setup | Precision | Recall | FP / PR | Est. cost / PR | p50 | p95 |
 | --- | --- | --- | --- | --- | --- | --- |
 | 1. Linter only | 67% | 20% | 0.08 | $0.0000 | 0.1 s | 1.4 s |
-| 2. Agent only | 100% | 30% | 0.00 | $0.0030 | 29.9 s | 40.0 s |
-| 3. Agent + filtering | 100% | 30% | 0.00 | $0.0030 | 29.9 s | 40.0 s |
+| 2. Agent only | 100% | 60% | 0.00 | $0.0066 | 92.1 s | 203.7 s |
+| 3. Agent + filtering | 100% | 60% | 0.00 | $0.0066 | 92.1 s | 203.7 s |
 
-12 cases (holdout), `gemini-3.5-flash-lite`, case set `2fe57354e31e`, 65 requests. Cost is estimated at list price; the free tier costs $0.
+12 cases (holdout), `gemini-3.5-flash-lite+look-again`, case set `2fe57354e31e`, 115 requests. Cost is estimated at list price; the free tier costs $0.
 <!-- /bench:holdout -->
 
 The linters' 20% on the held-out set is really 10%: one of their two hits was an unrelated warning that happened to land within 3 lines of a bug.
 
-Tuning set:
+Tuning set (with the second look; before it: 55% recall):
 
 <!-- bench:dev -->
 | Setup | Precision | Recall | FP / PR | Est. cost / PR | p50 | p95 |
 | --- | --- | --- | --- | --- | --- | --- |
 | 1. Linter only | 17% | 2% | 0.10 | $0.0000 | 0.2 s | 2.4 s |
-| 2. Agent only | 100% | 55% | 0.00 | $0.0037 | 38.6 s | 140.8 s |
-| 3. Agent + filtering | 100% | 55% | 0.00 | $0.0037 | 38.6 s | 140.8 s |
+| 2. Agent only | 100% | 68% | 0.00 | $0.0061 | 106.8 s | 248.8 s |
+| 3. Agent + filtering | 100% | 68% | 0.00 | $0.0061 | 106.8 s | 248.8 s |
 
-48 cases (dev), `gemini-3.5-flash-lite`, case set `2fe57354e31e`, 307 requests. Cost is estimated at list price; the free tier costs $0.
+48 cases (dev), `gemini-3.5-flash-lite+look-again`, case set `2fe57354e31e`, 457 requests. Cost is estimated at list price; the free tier costs $0.
 <!-- /bench:dev -->
 
 What the numbers taught: the first run found 27% of bugs because the AI sometimes used all its steps without answering. Forcing a final submit doubled recall to 55%. Setups 2 and 3 match because the model posts few, confident findings, so the filter had nothing to remove.

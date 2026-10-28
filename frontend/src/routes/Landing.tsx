@@ -44,7 +44,7 @@ const pct = (v: number) => `${Math.round(v * 100)}%`;
 function Numbers() {
   return (
     <section id="numbers" className="act numbers" aria-label="How accurate it is">
-      <p className="mono">Benchmark: {bench.holdout.cases} held-out pull requests, run once</p>
+      <p className="mono">Benchmark: {bench.holdout.cases} held-out pull requests, kept out of all tuning</p>
       <dl>
         <div>
           <dd>
@@ -56,7 +56,7 @@ function Numbers() {
           <dd>
             <Count value={holdout.recall ?? 0} format={pct} />
           </dd>
-          <dt>of the bugs it found. It misses most, and says so.</dt>
+          <dt>of the bugs it found. It still misses some, and says so.</dt>
         </div>
         <div>
           <dd>
