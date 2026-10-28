@@ -80,6 +80,10 @@ function Review({ id, me }: { id: number; me: Me }) {
   const posted = run.findings.filter((f) => f.status === "posted").length;
   const prUrl = `https://github.com/${run.repo}/pull/${run.pr}`;
 
+  // real time since the AI started: each step ends when its AI answer came back
+  let total = 0;
+  const elapsed = trace.map((s) => (total += s.duration_ms));
+
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
       <p>
@@ -178,27 +182,31 @@ function Review({ id, me }: { id: number; me: Me }) {
 
       <section className="intro">
         <h2>How DiffMate checked it</h2>
-        <p>Every step it took, in order. It can only read code, never change it.</p>
+        <p>
+          Every step it took, with the real time since the AI started (each AI answer is timed). It can only read code,
+          never change it.
+        </p>
       </section>
       {trace.length === 0 ? (
         <p>No steps recorded.</p>
       ) : (
-        <ol style={{ paddingLeft: "1.5rem" }}>
-          {trace.map((s, i) => (
-            <motion.li
-              key={s.step_no + s.summary}
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 + i * 0.04 }}
-              style={{ marginBottom: "0.5rem", overflowWrap: "anywhere" }}
-            >
-              <span className="plain">{STEP[s.tool] ?? s.tool}</span>
-              {s.duration_ms > 0 && ` (${(s.duration_ms / 1000).toFixed(1)} s)`}
-              <br />
-              <span className="fine">{s.summary}</span>
-            </motion.li>
-          ))}
-        </ol>
+        <section className="rail run-rail" aria-label="Timeline of this review">
+          <ol>
+            {trace.map((s, i) => (
+              <motion.li
+                key={s.step_no + s.summary}
+                className="on"
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 + i * 0.04 }}
+              >
+                <span className="t">+{(elapsed[i] / 1000).toFixed(1)} s</span>
+                <span className="x plain">{STEP[s.tool] ?? s.tool}</span>
+                <span className="fine">{s.summary}</span>
+              </motion.li>
+            ))}
+          </ol>
+        </section>
       )}
 
       <section className="intro next">

@@ -13,6 +13,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: no
 
 ### Changed
 
+- Run page: "How DiffMate checked it" is now a timeline with the real time of each step (from each AI answer's recorded duration), the dashboard's short version of the landing page's flow.
 - Landing page: the pinned review and "Break one line" are replaced by one scroll flow. Your scroll moves a recorded pull request through DiffMate: a timeline of every event with its time, the GitHub side, and what DiffMate does meanwhile, with the catch as the one held moment. Pick any of the three recorded reviews. Phones switch to whichever side is acting; reduced motion shows the finished review, still.
 - Design clean-up from an automated slop check: no coloured side stripes on code examples and comments, balanced headings, no stranded last words, shorter text lines, a smaller sign-in heading. The paper colour and Inter stay (decided by: Vighnesh).
 

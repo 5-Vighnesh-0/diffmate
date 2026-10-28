@@ -1191,3 +1191,14 @@ th {
   font-size: 14px;
   color: var(--muted);
 }
+
+.run-rail {
+  max-width: 44rem;
+  margin: 1rem 0 2rem;
+}
+
+.run-rail .fine {
+  display: block;
+  margin-top: 0.1rem;
+  overflow-wrap: anywhere;
+}

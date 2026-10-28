@@ -79,7 +79,11 @@ describe("dashboard", () => {
           findings: [{ id: 5, file: "calc.py", line: 3, category: "bug", severity: "high", confidence: 0.9,
             explanation: evil, status: "posted", my_verdict: null }],
         }),
-      "GET /api/runs/7/trace": () => json([]),
+      "GET /api/runs/7/trace": () =>
+        json([
+          { step_no: 1, tool: "read_file", summary: "read_file(path=\"calc.py\")", tokens_in: 1, tokens_out: 1, duration_ms: 2500 },
+          { step_no: 2, tool: "submit_findings", summary: "submit_findings(1 findings)", tokens_in: 1, tokens_out: 1, duration_ms: 1200 },
+        ]),
       "POST /api/findings/5/feedback": () => json(null, 204),
       "GET /api/feedback/summary": () => json({ useful: 4, not_useful: 1 }),
     });
@@ -88,6 +92,8 @@ describe("dashboard", () => {
 
     expect(await screen.findByText(evil)).toBeTruthy();
     expect(container.querySelector(".finding img")).toBeNull(); // no image injected via AI text
+    expect(await screen.findByText("+2.5 s")).toBeTruthy(); // real time from each AI answer
+    expect(screen.getByText("+3.7 s")).toBeTruthy();
 
     expect(screen.getByText(/saved only in DiffMate, never on GitHub/)).toBeTruthy();
     expect(screen.getByText("You have rated 0 of 1.")).toBeTruthy();
