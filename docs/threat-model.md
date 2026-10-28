@@ -52,6 +52,7 @@ Status: reviewed against the code at the end of Phase 3 (2026-10-07), including 
 | 26 | Private code sent to the free AI tier, which may learn from it (I) | Webhook ignores any repository not marked `private: false`; the worker re-checks the live PR before any AI call and stops if the repo is private | `test_private_repository_is_ignored_and_not_queued`, `test_a_private_repository_is_never_sent_to_the_ai` |
 | 27 | Anyone keeping the free Neon database awake through `/health` (D) | `/health` checks Redis only, never Postgres; rate-limited | `test_health_checks_time_out_instead_of_hanging` (fails if Postgres is touched), `test_health_rate_limit_is_30_per_minute` |
 | 28 | Votes steering what DiffMate posts (T) | Votes only raise the bar for one category in one repo (70% → 90% confidence), never silence it; only people with access to the repo can vote; it lowers again when later votes are useful | `test_a_stricter_category_needs_the_higher_bar`, `test_votes_count_only_for_their_own_repo_and_category`, `test_feedback_summary_lists_stricter_categories_only_for_my_repos` |
+| 29 | A harmful fix offered as a one-click suggestion (T) | The author must click to commit it and the comment says to check it first; only on notes 95% sure; the fix is a code block (schema rejects code fences, so model text cannot render as markdown) and at most 10 lines | `test_a_fix_cannot_break_out_of_its_code_block_or_run_long`, `test_no_suggestion_when_the_note_is_not_sure_enough_or_has_no_fix` |
 
 ## Out of scope for v1
 

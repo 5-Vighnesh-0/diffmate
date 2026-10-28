@@ -48,5 +48,11 @@ vitest → 11 passed · pnpm build → ok · impeccable detect (1366x900, 390x84
 pytest → 210 passed · ruff → All checks passed! · vitest → 11 passed · pnpm build → ok
 ```
 
+**One-click fixes (step 2)**
+- Optional `fix` on each finding (schema: at most 10 lines, no code fences), offered in the tool declaration and prompt; `format_comment` adds a GitHub suggestion block only at 95% confidence or more. Not stored, so no migration; measuring how many are committed is left for later.
+```
+pytest → 214 passed · ruff → All checks passed!
+```
+
 **Next**
 - Push after approval. Then, in order: one-click fixes, talk back, better catch rate (benchmark), plant a bug for real.

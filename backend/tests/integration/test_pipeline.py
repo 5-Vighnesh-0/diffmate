@@ -296,3 +296,15 @@ async def test_a_category_this_repo_voted_not_useful_needs_more_confidence(sessi
     assert [(c["line"]) for c in reviews[0]["comments"]] == [3]
     new = (await session.execute(select(Finding).where(Finding.run_id != old_run.id))).scalars()
     assert sorted((f.line, f.status) for f in new) == [(2, "dropped_stricter"), (3, "posted")]
+
+
+async def test_a_sure_note_with_a_fix_is_posted_as_a_one_click_suggestion(sessionmaker, session):
+    sure = {**finding(2, 0.97), "fix": "    return a / b"}
+    llm = FakeLLM([("submit_findings", {"findings": [sure]})])
+    reviews = []
+
+    await review_pr(ctx(sessionmaker, llm, reviews), "o/r", 7, SHA, 42)
+
+    assert "```suggestion\n    return a / b\n```" in reviews[0]["comments"][0]["body"]
+    stored = (await session.execute(select(Finding))).scalar_one()
+    assert (stored.line, stored.status) == (2, "posted")

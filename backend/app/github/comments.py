@@ -17,10 +17,17 @@ def plain(text: str) -> str:
     return " ".join(text.split())
 
 
+SUGGEST_MIN_CONFIDENCE = 0.95  # one-click fixes only on the surest notes
+
+
 def format_comment(f: Finding) -> str:
     percent = round(f.confidence * 100)
     head = f"**{LABELS[f.category]}** · {f.severity} severity · {percent}% confidence"
-    return f"{head}\n\n{plain(f.explanation)}"
+    body = f"{head}\n\n{plain(f.explanation)}"
+    if f.fix and f.confidence >= SUGGEST_MIN_CONFIDENCE:
+        # Inside a fence nothing renders; the schema forbids fences in the fix itself.
+        body += f"\n\nSuggested fix (check it before committing):\n```suggestion\n{f.fix}\n```"
+    return body
 
 
 def marker(sha: str) -> str:

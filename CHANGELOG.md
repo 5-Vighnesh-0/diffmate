@@ -6,6 +6,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: no
 
 ### Added
 
+- One-click fixes: when DiffMate is 95% sure and knows the fix (at most 10 lines), its comment includes a GitHub suggestion the author can commit with one click, marked "check it before committing". The fix is not stored.
 - Learn from votes: when people on a repo mark at least 2 of 3 notes of one kind Not useful (3 votes or more), DiffMate needs 90% confidence instead of 70% before posting that kind there. It never silences a kind, and it relaxes again when later votes are useful. The dashboard lists these stricter kinds; a held-back note says why on the run page. Migration 0003 adds the `dropped_stricter` status.
 
 ### Changed

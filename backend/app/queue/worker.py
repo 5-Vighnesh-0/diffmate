@@ -127,7 +127,12 @@ async def save_result(
             }
             for f, finding_status in statuses:
                 s.add(
-                    Finding(run_id=run_id, source="agent", status=finding_status, **f.model_dump())
+                    Finding(
+                        run_id=run_id,
+                        source="agent",
+                        status=finding_status,
+                        **f.model_dump(exclude={"fix"}),
+                    )
                 )
             for n, t in enumerate(result.trace, 1):
                 s.add(

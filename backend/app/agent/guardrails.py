@@ -28,6 +28,11 @@ SUBMIT_TOOL = {
                         "severity": {"type": "string", "enum": ["low", "medium", "high"]},
                         "confidence": {"type": "number"},
                         "explanation": {"type": "string"},
+                        "fix": {
+                            "type": "string",
+                            "description": "Optional: the corrected code that replaces the "
+                            "reported line, same indentation, at most 10 lines.",
+                        },
                     },
                     "required": [
                         "file",

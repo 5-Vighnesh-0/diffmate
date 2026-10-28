@@ -91,3 +91,17 @@ def test_bare_urls_are_not_auto_linked():
     body = format_comment(F.model_copy(update={"explanation": "see https://evil.example/x"}))
 
     assert "https://" not in body
+
+
+def test_a_very_sure_note_with_a_fix_offers_a_one_click_suggestion():
+    sure = F.model_copy(update={"confidence": 0.95, "fix": "    return total / max(len(items), 1)"})
+
+    body = format_comment(sure)
+
+    assert "```suggestion\n    return total / max(len(items), 1)\n```" in body
+    assert "check it before committing" in body
+
+
+def test_no_suggestion_when_the_note_is_not_sure_enough_or_has_no_fix():
+    assert "```suggestion" not in format_comment(F.model_copy(update={"fix": "x = 1"}))  # 90%
+    assert "```suggestion" not in format_comment(F.model_copy(update={"confidence": 0.99}))

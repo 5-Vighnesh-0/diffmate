@@ -85,3 +85,10 @@ def test_a_stricter_category_needs_the_higher_bar():
 def test_below_the_normal_bar_is_still_low_confidence_in_a_stricter_category():
     results = filter_findings([f(confidence=0.5)], DIFF, stricter={"bug"}, strict_threshold=0.9)
     assert statuses(results) == [(10, "dropped_low_confidence")]
+
+
+def test_a_fix_cannot_break_out_of_its_code_block_or_run_long():
+    for bad in ["x = 1\n```\n![x](https://evil.example)", "~~~", "\n".join(["x = 1"] * 11)]:
+        with pytest.raises(ValidationError):
+            Finding.model_validate({**f().model_dump(), "fix": bad})
+    assert Finding.model_validate({**f().model_dump(), "fix": "x = 1\ny = 2"}).fix == "x = 1\ny = 2"
